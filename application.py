@@ -1,22 +1,17 @@
 import json
 import logging
-import os
-from os import environ as env
 from urllib.parse import quote_plus, urlencode
 
 from authlib.integrations.flask_client import OAuth
 from dotenv import find_dotenv, load_dotenv
 from flask import Flask, redirect, render_template, session, url_for, request
 
-load_dotenv()
-
-load_dotenv(env['authserver_configEnv'])
-
+from loadMyAppSettings import env as env
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = os.getenv("app_cookieSigning_secret")
-app.config['SERVER_NAME'] = os.getenv("app_server_url")
+app.config['SECRET_KEY'] = env["app_cookieSigning_secret"]
+app.config['SERVER_NAME'] = env["app_server_url"]
 
 
 logging.basicConfig(
@@ -27,9 +22,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 # logger.info(app.config['SECRET_KEY'])
 # logger.info(app.config['SERVER_NAME'])
-logger.info(f"client id using os getenv is {os.getenv("oidc_clientID")}")
-logger.info(f"using env is {env['oidc_clientID']}")
-
 
 def _inspect(resp):
     req = resp.request
@@ -51,14 +43,14 @@ def _compliance_fix(session):
 oauth = OAuth(app)
 oauth.register(
 	"oidc",
-	client_id=env.get("oidc_clientID"),
-	client_secret=env.get("oidc_clientSecret"),
+	client_id=env["oidc_clientID"],
+	client_secret=env["oidc_clientSecret"],
 	client_kwargs={
-		"scope": "openid",
+		"scope": "openid profile",
 		"token_endpoint_auth_method": "client_secret_post",
 	},
 	compliance_fix=_compliance_fix,
-	server_metadata_url=f'{os.getenv("oidc_authserver")}/.well-known/openid-configuration',
+	server_metadata_url=f'{env["oidc_authserver"]}/.well-known/openid-configuration',
 )
 
 # logger.info(f'https://{os.getenv("authserver_domain")}/.well-known/openid-configuration')
@@ -67,27 +59,18 @@ oauth.register(
 
 
 
-@app.before_request
-def log_request():
-	logger.info(request.headers)
-	logger.info(request.data)
-	logger.info(request.args)
 @app.route("/")
 def hello():
-	return f"serving from {os.getenv('app_server_url')}"
+	return f"serving from {env['app_server_url']}"
 
 @app.route("/login")
 def login():
-	# print (url_for("callback"))
-	logger.info(f"/login requested. callback url is {url_for("callback", _external=True)}")
 	return oauth.oidc.authorize_redirect(
         redirect_uri=url_for("callback", _external=True)
     )
 
 @app.route("/after-authentication", methods=["GET", "POST"])
 def callback():
-	logger.info(f"/after-authentication requested, with parameters {request.args.to_dict()}")
-	# logger.info(session["state"])
 	token = oauth.oidc.authorize_access_token()
 	logger.info(token)
 	user = token['userinfo']
@@ -113,4 +96,4 @@ def logged_in():
 @app.route("/logout")
 def logout():
 	session.clear()
-	return redirect(f"{os.getenv('oidc_authserver')}/v2/logout")
+	return redirect(f"{env['oidc_authserver']}/v2/logout")
