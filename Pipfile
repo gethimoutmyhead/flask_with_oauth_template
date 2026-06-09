@@ -9,6 +9,8 @@ gunicorn = "*"
 python-dotenv = "*"
 authlib = "*"
 requests = "*"
+pytest = "*"
+importlib = "*"
 
 [dev-packages]
 
