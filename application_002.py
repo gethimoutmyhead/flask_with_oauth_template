@@ -22,8 +22,8 @@ oidcServer_client = OAuth2Session(
 def check_loggedIn(func):
 	# @wraps(f)
 	def checkLog(*args):
-		is_token_present = 'authserver_token' in session.keys()
-		if not is_token_present:
+		token_is_present = 'authserver_token' in session.keys()
+		if token_is_present is not True:
 			return redirect(url_for('guest'))
 		return func(*args)
 	return checkLog
