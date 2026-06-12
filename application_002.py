@@ -41,7 +41,8 @@ def oidc_server_callback():
 	returnPage = []
 	if "error" in request.args.keys():
 		metaTags = [
-			{'name': 'description', 'content': 'OAuth authentication flow error', 'lang': 'en'}
+			{'name': 'description', 'content': 'OAuth authentication flow error', 'lang': 'en'},
+			{'name': 'description', 'content': 'OAuth அங்கீகார ஓட்டப் பிழை', 'lang': 'ta'},
 		]
 		return render_template(
 			"auth-error.html", 
@@ -55,7 +56,8 @@ def oidc_server_callback():
 	missingArguments = False in argumentsPresentCheck
 	if missingArguments:
 		metaTags = [
-			{'name': 'description', 'content': 'OAuth authentication flow error', 'lang': 'en'}
+			{'name': 'description', 'content': 'OAuth authentication flow error', 'lang': 'en'},
+			{'name': 'description', 'content': 'OAuth அங்கீகார ஓட்டப் பிழை', 'lang': 'ta'},
 		]
 		return render_template(
 			"auth-error.html", 
