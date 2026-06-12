@@ -57,7 +57,7 @@ def test_oidcCallbackPage_error_caught():
 	assert len(metaTag_description_ta) > 0, f"{url} - no description Meta in Tamil"
 	assert "ஓட்டப் பிழை" in metaTag_description_ta[0].get('content'), f"{url} - no error, description - {metaTag_description_ta[0].get('content')} "
 
-def test_oidcCallbackPage_stateMissing():
+def test_oidcCallbackPage_ArgumentMissing():
 	url = f"https://{env['app_server_url']}/after-authentication?code=roofus"
 	try:
 		page = requests.get(url, verify=env['publicCert_site'], allow_redirects=False)

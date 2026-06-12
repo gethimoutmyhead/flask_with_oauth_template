@@ -5,7 +5,7 @@ from authlib.integrations.requests_client import OAuth2Session
 
 from loadMyAppSettings import env as env
 from itertools import repeat, chain
-
+from functools import wraps
 
 app = Flask(__name__)
 
@@ -18,6 +18,15 @@ oidcServer_client = OAuth2Session(
 	client_id=env['oidc_clientID'],
 	client_secret=env['oidc_clientSecret'],
 )
+
+def check_loggedIn(func):
+	# @wraps(f)
+	def checkLog(*args):
+		is_token_present = 'authserver_token' in session.keys()
+		if not is_token_present:
+			return redirect(url_for('guest'))
+		return func(*args)
+	return checkLog
 
 @app.route("/")
 def hello():
@@ -71,7 +80,9 @@ def oidc_server_callback():
 				authorization_response=request.url, 
 				redirect_uri=url_for('oidc_server_callback', _external=True),
 			)
-			return oidc_token
+			# return oidc_token
+			session['authserver_token'] = oidc_token
+			return ('login achieved')
 		except Exception as e:
 			return render_template(
 				"auth-error.html",
@@ -86,3 +97,15 @@ def logged_in():
 @app.route ('/logout')
 def logout():
 	return render_template("base.html")
+
+@app.route('/guest-user')
+def guest():
+	return ('only a guest here')
+
+
+@app.route('/onlytheauth')
+@check_loggedIn
+def theauth():
+	return (f'the auth is here {session['authserver_token']}')
+
+
