@@ -4,6 +4,7 @@ from flask import Flask, redirect, render_template, session, url_for, request
 from authlib.integrations.requests_client import OAuth2Session
 
 from loadMyAppSettings import env as env
+from itertools import repeat, chain
 
 
 app = Flask(__name__)
@@ -37,11 +38,35 @@ def login():
 @app.route("/after-authentication")
 def oidc_server_callback():
 	token_endpoint = f"{env['oidc_authserver']}/oauth/token"
-	oidc_token = oidcServer_client.fetch_token(token_endpoint,
-		authorization_response=request.url, 
-		redirect_uri=url_for('oidc_server_callback', _external=True),
-	)
-	return f'{oidc_token}'
+	returnPage = []
+	if "error" in request.args.keys():
+		return render_template(
+			"auth-error.html", 
+			errorMessage=f"{request.args.get('error')} -  {request.args.get('error_description')}"
+			)
+
+	URIargumentsNeeded = ['code', 'state']
+
+	argumentsPresentCheck = [*map(lambda argToTest, argsReceived: argToTest in argsReceived, URIargumentsNeeded, repeat(request.args.keys()))]
+	missingArguments = False in argumentsPresentCheck
+	if missingArguments:
+		return render_template(
+			"auth-error.html", 
+			errorMessage= f"AuthServer response error - missing arguments, arguments present are {request.args.keys()}"
+			)
+	else:
+		try:
+			oidc_token = oidcServer_client.fetch_token(token_endpoint,
+				authorization_response=request.url, 
+				redirect_uri=url_for('oidc_server_callback', _external=True),
+			)
+			return oidc_token
+		except Exception as e:
+			return render_template(
+				"auth-error.html",
+				errorMessage=e
+				)
+	# return f"AuthServer response error - missing arguments, arguments present are {request.args.keys()}"
 
 @app.route('/logged-in')
 def logged_in():
