@@ -3,3 +3,4 @@
 *.env
 *.pem
 gunicorn.conf.py
+.pytest_cache

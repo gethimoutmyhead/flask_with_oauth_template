@@ -11,7 +11,7 @@ authlib = "*"
 requests = "*"
 pytest = "*"
 importlib = "*"
-requests-oauthlib = "*"
+beautifulsoup4 = "*"
 
 [dev-packages]
 
