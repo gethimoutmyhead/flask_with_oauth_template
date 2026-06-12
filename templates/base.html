@@ -1,16 +1,18 @@
 <!doctype html>
-<head>
-	<meta name="application-name" content="Cannculator version 0.2" lang="en">
-	<meta name="robots" content="nofollow, noindex" >
-	{% block addMetas %}{% endblock %}
-	<title>{% block title %}{% endblock %}</title> 
+<html>
+	<head>
+		<meta name="application-name" content="Cannculator version 0.2" lang="en">
+		<meta name="robots" content="nofollow, noindex" >
+		{% block addMetaTags %}{% endblock %}
+		<title>{% block title %}{% endblock %}</title> 
 
-</head>
-<header>
+	</head>
+	<header>
 
-</header>
-<body>
-	{% block content %}{% endblock %}
-</body>
-<footer>
-</footer>
+	</header>
+	<body>
+		{% block content %}{% endblock %}
+	</body>
+	<footer>
+	</footer>
+</html>

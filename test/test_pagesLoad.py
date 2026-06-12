@@ -51,11 +51,11 @@ def test_oidcCallbackPage_error_caught():
 		pytest.fail(f"{url} - Failed to connect to the server")
 
 	soup = BeautifulSoup(page.text, 'html.parser')
-	try:
-		pageTitle = soup.find('title')
-		assert "error" in pageTitle.contents[0]
-	except:
-		pytest.fail(f"{url} - page title is {pageTitle.contents}")
+	metaTags = soup.find_all('meta')
+	metaTag_descriptions = [*filter(lambda tag: tag.get('name') =='description', metaTags)]
+	metaTag_description_en = [*filter(lambda tag: tag.get('lang') == 'en', metaTag_descriptions)]
+	assert len(metaTag_description_en) > 0, f"{url} - no description Meta in english"
+	assert "error" in metaTag_description_en[0].get('content'), f"{url} - no error, description - {metaTag_description_en[0].get('content')} "
 
 def test_oidcCallbackPage_stateMissing():
 	url = f"https://{env['app_server_url']}/after-authentication?code=roofus"
@@ -72,11 +72,14 @@ def test_oidcCallbackPage_stateMissing():
 		pytest.fail(f"{url} - Failed to connect to the server")
 
 	soup = BeautifulSoup(page.text, 'html.parser')
-	try:
-		pageTitle = soup.find('title')
-		assert "error" in pageTitle.contents[0]
-	except:
-		pytest.fail(f"{url} - page title is {pageTitle.get('contents')}")
+
+	metaTags = soup.find_all('meta')
+	metaTag_descriptions = [*filter(lambda tag: tag.get('name') =='description', metaTags)]
+	metaTag_description_en = [*filter(lambda tag: tag.get('lang') == 'en', metaTag_descriptions)]
+	assert len(metaTag_description_en) > 0, f"{url} - no description Meta in english"
+	assert "error" in metaTag_description_en[0].get('content'), f"{url} - no error, description - {metaTag_description_en[0].get('content')} "
+	# except:
+	# 	pytest.fail(f"{url} - description is {metaTag_description_en[0].get('content')}")
 
 # def test_httpRedirectsToHTTPS():
 # 	url = f"https://{env['app_server_url']}/"

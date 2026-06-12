@@ -40,9 +40,13 @@ def oidc_server_callback():
 	token_endpoint = f"{env['oidc_authserver']}/oauth/token"
 	returnPage = []
 	if "error" in request.args.keys():
+		metaTags = [
+			{'name': 'description', 'content': 'OAuth authentication flow error', 'lang': 'en'}
+		]
 		return render_template(
 			"auth-error.html", 
-			errorMessage=f"{request.args.get('error')} -  {request.args.get('error_description')}"
+			errorMessage=f"{request.args.get('error')} -  {request.args.get('error_description')}",
+			metaTags = metaTags,
 			)
 
 	URIargumentsNeeded = ['code', 'state']
@@ -50,10 +54,15 @@ def oidc_server_callback():
 	argumentsPresentCheck = [*map(lambda argToTest, argsReceived: argToTest in argsReceived, URIargumentsNeeded, repeat(request.args.keys()))]
 	missingArguments = False in argumentsPresentCheck
 	if missingArguments:
+		metaTags = [
+			{'name': 'description', 'content': 'OAuth authentication flow error', 'lang': 'en'}
+		]
 		return render_template(
 			"auth-error.html", 
-			errorMessage= f"AuthServer response error - missing arguments, arguments present are {request.args.keys()}"
+			errorMessage= f"AuthServer response error - missing arguments, arguments present are {request.args.keys()}",
+			metaTags = metaTags,
 			)
+
 	else:
 		try:
 			oidc_token = oidcServer_client.fetch_token(token_endpoint,
