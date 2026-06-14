@@ -1,5 +1,6 @@
 import json
 import logging
+import requests as fetch_url
 from flask import Flask, redirect, render_template, session, url_for, request
 from authlib.integrations.requests_client import OAuth2Session
 
@@ -12,7 +13,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = env["app_cookieSigning_secret"]
 app.config['SERVER_NAME'] = env["app_server_url"]
 
-oidcserver_metadataURL = f"{env['oidc_authserver']}/.well-known/openid-configuration"
+url_for_oidcserver_metadataURL = f"{env['oidc_authserver']}/.well-known/openid-configuration"
+
+request_oidcserver_metadata = fetch_url.get(url_for_oidcserver_metadataURL)
+oidcserver_metada = request_oidcserver_metadata.json()
 
 oidcServer_client = OAuth2Session(
 	client_id=env['oidc_clientID'],

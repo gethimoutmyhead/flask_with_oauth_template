@@ -38,8 +38,8 @@ def test_expectedURLResponse(testConditions):
 		str_contentType in page.headers.get('content-type')
 	]
 	str_errorResponse = (
-		f"{str_url} returned {page.status_code}\n"
-		f"content type {page.headers.get('content-type')}"
+		f"{str_url} returned {page.status_code}{' :CORRECT' if checkList[0] else ' :expected '+ str(int_expectedStatusCode)}\n"
+		f"content type {page.headers.get('content-type')}{' :CORRECT' if checkList[1] else ' :expected '+ str_contentType}"
 	)
 	assert not (False in checkList), str_errorResponse
 	
