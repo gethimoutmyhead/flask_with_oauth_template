@@ -5,6 +5,44 @@ import pytest
 from bs4 import BeautifulSoup
 
 # from 'gunicorn.conf' import certfile as page_publicCert
+URLsToCheck = []
+URLsToCheck.append({"pageName": ''})
+URLsToCheck.append({"pageName": 'guest-user'})
+URLsToCheck.append({"pageName": 'onlytheauth'})
+URLsToCheck.append({"pageName": 'login', "expectedResponse": 302, "allow_redirects":False})
+URLsToCheck.append({"pageName": 'after-authentication', "expectedResponse": 302, "allow_redirects": False})
+
+@pytest.mark.parametrize("testConditions", URLsToCheck)
+def test_expectedURLResponse(testConditions):
+	str_baseURL = env.get('app_server_url','not set')
+	try:
+		str_url = f"https://{str_baseURL}/{testConditions['pageName']}"
+	except:
+		pytest.fail(f"no pageName set\n base URL {str_baseURL}\n received {testConditions}")
+
+	int_expectedStatusCode = testConditions.get('expectedResponse', 200)
+	bool_redirectIsOK = testConditions.get('allow_redirects', True)
+	str_contentType = testConditions.get('content-type', 'text/html')
+
+	try:
+		page = requests.get(str_url, verify=env['publicCert_site'], allow_redirects=bool_redirectIsOK)
+	except requests.exceptions.Timeout:
+		pytest.fail(f"{str_url} - The request timed out")
+	except requests.exceptions.ConnectionError:
+		pytest.fail(f"{str_url} - Failed to connect to the server")
+	except Exception as e:
+		pytest.fail(f"Unexpected error {e}")
+
+	checkList = [
+		page.status_code == int_expectedStatusCode,
+		str_contentType in page.headers.get('content-type')
+	]
+	str_errorResponse = (
+		f"{str_url} returned {page.status_code}\n"
+		f"content type {page.headers.get('content-type')}"
+	)
+	assert not (False in checkList), str_errorResponse
+	
 
 def test_basePageLoads():
 	url = f"https://{env['app_server_url']}"
