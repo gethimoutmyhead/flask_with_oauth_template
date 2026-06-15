@@ -12,6 +12,7 @@ requests = "*"
 pytest = "*"
 importlib = "*"
 beautifulsoup4 = "*"
+pyjwt = "*"
 
 [dev-packages]
 

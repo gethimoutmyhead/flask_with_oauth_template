@@ -1,8 +1,11 @@
 import json
 import logging
 import requests as fetch_url
-from flask import Flask, redirect, render_template, session, url_for, request
+from flask import Flask, redirect, render_template, session, url_for, request, make_response
 from authlib.integrations.requests_client import OAuth2Session
+import jwt
+from datetime import datetime, timezone, timedelta
+
 
 from loadMyAppSettings import env as env
 from itertools import repeat, chain
@@ -32,6 +35,52 @@ def check_loggedIn(func):
 		return func(*args)
 	return checkLog
 
+def jwt_generateRedirectState(str_urlToRedirect):
+    """
+    Create a short-lived signed JWT capturing the page the user is currently
+    trying to access, so we can redirect back to it after a successful login.
+ 
+    Returns the encoded token string.
+    """
+    # full_path keeps the query string; fall back to path when there isn't one
+    # (full_path appends a bare "?" otherwise).
+    # intended_path = request.full_path if request.query_string else request.path
+ 
+    payload = {
+        "intended_path": str_urlToRedirect,
+        "iat": datetime.now(timezone.utc),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=360),
+    }
+    return jwt.encode(
+        payload,
+        app.config["SECRET_KEY"],
+        algorithm="HS256",
+    )
+
+def dict_decodedJWT(myjwt):
+	payload = jwt.decode(myjwt, app.config['SECRET_KEY'], algorithms=['HS256'])
+	return payload
+
+def authorization_check(permittedRoles=[], permittedAttributes=[]):
+	def decorator(view_func):
+		@wraps(view_func)
+		def wrapper(*args, **kwargs):
+			token_is_present = 'authserver_token' in session.keys()
+			if not token_is_present:              
+				url_redirectAfterAuth = request.full_path
+				loginURI, state = oidcServer_client.create_authorization_url(
+					url=f"{env['oidc_authserver']}/authorize",
+					redirect_uri=url_for('oidc_server_callback', _external=True),
+					response_type='code',
+					scope='openid profile offline_access',
+					state=jwt_generateRedirectState(url_redirectAfterAuth)
+				)
+				session['oidc_state'] = state
+				return redirect(loginURI)
+			return view_func(*args, **kwargs)
+		return wrapper
+	return decorator
+
 @app.route("/")
 def hello():
 	return render_template("base.html")
@@ -44,6 +93,7 @@ def login():
 		redirect_uri=url_redirectAfterAuth,
 		response_type='code',
 		scope='openid profile offline_access',
+		state=jwt_generateRedirectState(url_for('logged_in', _external=True))
 	)
 	session['oidc_state'] = state
 	return redirect(loginURI)
@@ -52,46 +102,64 @@ def login():
 def oidc_server_callback():
 	token_endpoint = f"{env['oidc_authserver']}/oauth/token"
 	returnPage = []
-	if "error" in request.args.keys():
-		metaTags = [
-			{'name': 'description', 'content': 'OAuth authentication flow error', 'lang': 'en'},
-			{'name': 'description', 'content': 'OAuth அங்கீகார ஓட்டப் பிழை', 'lang': 'ta'},
-		]
+	bool_errorParameterReceived = 'error' in request.args.keys()
+	
+	requiredParameters = ['code', 'state']
+	checklist_requiredParameters = [*map(lambda argToTest, argsReceived: argToTest in argsReceived, requiredParameters, repeat(request.args.keys()))]
+	bool_missingArguments = False in checklist_requiredParameters
+
+	if bool_errorParameterReceived:
+		# metaTags = [
+		# 	{'name': 'description', 'content': 'OAuth authentication flow error', 'lang': 'en'},
+		# 	{'name': 'description', 'content': 'OAuth அங்கீகார ஓட்டப் பிழை', 'lang': 'ta'},
+		# ]
+		# return render_template(
+		# 	"auth-error.html", 
+		# 	errorMessage=f"{request.args.get('error')} -  {request.args.get('error_description')}",
+		# 	metaTags = metaTags,
+		# 	)
+		response = make_response(redirect('logout'))
+		response.headers['X-Error-Title'] = 'OAuth authentication flow error'
+		response.headers['X-Error-Message'] = f"AuthServer error parameter - {request.args.get('error')} -  {request.args.get('error_description')}"
+		return response
+	# URIargumentsNeeded = ['code', 'state']
+
+	# argumentsPresentCheck = [*map(lambda argToTest, argsReceived: argToTest in argsReceived, URIargumentsNeeded, repeat(request.args.keys()))]
+	# missingArguments = False in argumentsPresentCheck
+	if bool_missingArguments:
+		# metaTags = [
+		# 	{'name': 'description', 'content': 'OAuth authentication flow error', 'lang': 'en'},
+		# 	{'name': 'description', 'content': 'OAuth அங்கீகார ஓட்டப் பிழை', 'lang': 'ta'},
+		# ]
+		# return render_template(
+		# 	"auth-error.html", 
+		# 	errorMessage= f"AuthServer response error - missing arguments, arguments present are {request.args.keys()}",
+		# 	metaTags = metaTags,
+		# 	)
+		response = make_response(redirect('logout'))
+		response.headers['X-Error-Title'] = 'OAuth authentication flow error'
+		response.headers['X-Error-Message'] = f"Response missing arguments, arguments present are {request.args.keys()}"
+		return response
+
+
+	
+	try:
+		oidc_token = oidcServer_client.fetch_token(token_endpoint,
+			authorization_response=request.url, 
+			redirect_uri=url_for('oidc_server_callback', _external=True),
+		)
+		# return oidc_token
+		session['authserver_token'] = oidc_token
+		state_decoded = dict_decodedJWT(session['oidc_state'])
+		redirect_url = state_decoded['intended_path']
+		response = make_response(redirect(redirect_url))
+		return response
+		# return (f'login achieved, redirecting to {state_decoded}')
+	except Exception as e:
 		return render_template(
-			"auth-error.html", 
-			errorMessage=f"{request.args.get('error')} -  {request.args.get('error_description')}",
-			metaTags = metaTags,
+			"auth-error.html",
+			errorMessage=e
 			)
-
-	URIargumentsNeeded = ['code', 'state']
-
-	argumentsPresentCheck = [*map(lambda argToTest, argsReceived: argToTest in argsReceived, URIargumentsNeeded, repeat(request.args.keys()))]
-	missingArguments = False in argumentsPresentCheck
-	if missingArguments:
-		metaTags = [
-			{'name': 'description', 'content': 'OAuth authentication flow error', 'lang': 'en'},
-			{'name': 'description', 'content': 'OAuth அங்கீகார ஓட்டப் பிழை', 'lang': 'ta'},
-		]
-		return render_template(
-			"auth-error.html", 
-			errorMessage= f"AuthServer response error - missing arguments, arguments present are {request.args.keys()}",
-			metaTags = metaTags,
-			)
-
-	else:
-		try:
-			oidc_token = oidcServer_client.fetch_token(token_endpoint,
-				authorization_response=request.url, 
-				redirect_uri=url_for('oidc_server_callback', _external=True),
-			)
-			# return oidc_token
-			session['authserver_token'] = oidc_token
-			return ('login achieved')
-		except Exception as e:
-			return render_template(
-				"auth-error.html",
-				errorMessage=e
-				)
 	# return f"AuthServer response error - missing arguments, arguments present are {request.args.keys()}"
 
 @app.route('/logged-in')
@@ -100,7 +168,8 @@ def logged_in():
 
 @app.route ('/logout')
 def logout():
-	return render_template("base.html")
+	session.clear()
+	return redirect(f'{env['oidc_authserver']}/v2/logout')
 
 @app.route('/guest-user')
 def guest():
@@ -108,8 +177,12 @@ def guest():
 
 
 @app.route('/onlytheauth')
-@check_loggedIn
+@authorization_check()
 def theauth():
 	return (f'the auth is here {session['authserver_token']}')
 
-
+@app.route('/disappoint')
+def disappoint():
+	zen = make_response(redirect('logged_in'))
+	zen.headers['X-Error-Message'] = 'sad'
+	return zen

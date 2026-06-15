@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 URLsToCheck = []
 URLsToCheck.append({"pageName": ''})
 URLsToCheck.append({"pageName": 'guest-user'})
-URLsToCheck.append({"pageName": 'onlytheauth'})
+URLsToCheck.append({"pageName": 'onlytheauth', "expectedResponse": 302, "allow_redirects": False})
 URLsToCheck.append({"pageName": 'login', "expectedResponse": 302, "allow_redirects":False})
 URLsToCheck.append({"pageName": 'after-authentication', "expectedResponse": 302, "allow_redirects": False})
 
@@ -28,8 +28,8 @@ def test_expectedURLResponse(testConditions):
 		page = requests.get(str_url, verify=env['publicCert_site'], allow_redirects=bool_redirectIsOK)
 	except requests.exceptions.Timeout:
 		pytest.fail(f"{str_url} - The request timed out")
-	except requests.exceptions.ConnectionError:
-		pytest.fail(f"{str_url} - Failed to connect to the server")
+	except requests.exceptions.ConnectionError as e:
+		pytest.fail(f"{str_url} - Failed to connect to the server - {e}")
 	except Exception as e:
 		pytest.fail(f"Unexpected error {e}")
 
@@ -64,58 +64,69 @@ def test_loginPageRedirects():
 	except requests.exceptions.ConnectionError:
 		pytest.fail(f"{url} - Failed to connect to the server")
 
-def test_oidcCallbackPage_returnsAPage():
-	url = f"https://{env['app_server_url']}/after-authentication"
-	try:
-		page = requests.get(url, verify=env['publicCert_site'], allow_redirects=True)
-		assert page.status_code == 200, f"{url} returned {page.status_code}"
-	except requests.exceptions.Timeout:
-		pytest.fail(f"{url} - The request timed out")
-	except requests.exceptions.ConnectionError:
-		pytest.fail(f"{url} - Failed to connect to the server")	
 
 def test_oidcCallbackPage_error_caught():
 	url = f"https://{env['app_server_url']}/after-authentication?error=access_denied"
 	try:
 		page = requests.get(url, verify=env['publicCert_site'], allow_redirects=False)
 		checkList = [
-			(page.status_code == 200),
-			"text/html" in page.headers.get('content-type'),
+			(page.status_code == 302),
+			"AuthServer error parameter" in page.headers.get('X-Error-Message'),
 		]
-		assert not (False in checkList), f"{url} returned {page.status_code}, content type {page.headers.get('content-type')} "
+		assert not (False in checkList), f"{url} returned {page.status_code}, error message {page.headers.get('X-Error-Message', 'not received')} "
 	except requests.exceptions.Timeout:
 		pytest.fail(f"{url} - The request timed out")
 	except requests.exceptions.ConnectionError:
 		pytest.fail(f"{url} - Failed to connect to the server")
+	except Exception as e:
+		pytest.fail(e)
 
-	soup = BeautifulSoup(page.text, 'html.parser')
-	metaTags = soup.find_all('meta')
-	metaTag_descriptions = [*filter(lambda tag: tag.get('name') =='description', metaTags)]
-	metaTag_description_ta = [*filter(lambda tag: tag.get('lang') == 'ta', metaTag_descriptions)]
-	assert len(metaTag_description_ta) > 0, f"{url} - no description Meta in Tamil"
-	assert "ஓட்டப் பிழை" in metaTag_description_ta[0].get('content'), f"{url} - no error, description - {metaTag_description_ta[0].get('content')} "
+	# soup = BeautifulSoup(page.text, 'html.parser')
+	# metaTags = soup.find_all('meta')
+	# metaTag_descriptions = [*filter(lambda tag: tag.get('name') =='description', metaTags)]
+	# metaTag_description_ta = [*filter(lambda tag: tag.get('lang') == 'ta', metaTag_descriptions)]
+	# assert len(metaTag_description_ta) > 0, f"{url} - no description Meta in Tamil"
+	# assert "ஓட்டப் பிழை" in metaTag_description_ta[0].get('content'), f"{url} - no error, description - {metaTag_description_ta[0].get('content')} "
 
 def test_oidcCallbackPage_ArgumentMissing():
 	url = f"https://{env['app_server_url']}/after-authentication?code=roofus"
 	try:
 		page = requests.get(url, verify=env['publicCert_site'], allow_redirects=False)
 		checkList = [
-			page.status_code == 200,
-			"text/html" in page.headers.get('content-type'),
+			page.status_code == 302,
+			"Response missing arguments" in page.headers.get('X-Error-Message'),
 		]
-		assert not (False in checkList), f"{url} returned {page.status_code}, content type {page.headers.get('content-type')} "
+		assert not (False in checkList), f"{url} returned {page.status_code}, error message {page.headers.get('X-Error-Message', "not returned")} "
 	except requests.exceptions.Timeout:
 		pytest.fail(f"{url} - The request timed out")
 	except requests.exceptions.ConnectionError:
 		pytest.fail(f"{url} - Failed to connect to the server")
+	except Exception as e:
+		pytest.fail(e)
 
-	soup = BeautifulSoup(page.text, 'html.parser')
 
-	metaTags = soup.find_all('meta')
-	metaTag_descriptions = [*filter(lambda tag: tag.get('name') =='description', metaTags)]
-	metaTag_description_ta = [*filter(lambda tag: tag.get('lang') == 'ta', metaTag_descriptions)]
-	assert len(metaTag_description_ta) > 0, f"{url} - no description Meta in Tamil"
-	assert "ஓட்டப் பிழை" in metaTag_description_ta[0].get('content'), f"{url} - no error, description - {metaTag_description_ta[0].get('content')} "
+	url = f"https://{env['app_server_url']}/after-authentication?state=doofus"
+	try:
+		page = requests.get(url, verify=env['publicCert_site'], allow_redirects=False)
+		checkList = [
+			page.status_code == 302,
+			"Response missing arguments" in page.headers.get('X-Error-Message'),
+		]
+		assert not (False in checkList), f"{url} returned {page.status_code}, error message {page.headers.get('X-Error-Message', "not returned")} "
+	except requests.exceptions.Timeout:
+		pytest.fail(f"{url} - The request timed out")
+	except requests.exceptions.ConnectionError:
+		pytest.fail(f"{url} - Failed to connect to the server")
+	except Exception as e:
+		pytest.fail(e)
+
+	# soup = BeautifulSoup(page.text, 'html.parser')
+
+	# metaTags = soup.find_all('meta')
+	# metaTag_descriptions = [*filter(lambda tag: tag.get('name') =='description', metaTags)]
+	# metaTag_description_ta = [*filter(lambda tag: tag.get('lang') == 'ta', metaTag_descriptions)]
+	# assert len(metaTag_description_ta) > 0, f"{url} - no description Meta in Tamil"
+	# assert "ஓட்டப் பிழை" in metaTag_description_ta[0].get('content'), f"{url} - no error, description - {metaTag_description_ta[0].get('content')} "
 	# except:
 	# 	pytest.fail(f"{url} - description is {metaTag_description_en[0].get('content')}")
 
