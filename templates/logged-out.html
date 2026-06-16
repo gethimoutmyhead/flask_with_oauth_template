@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{%block addMetaTags %}
+	{% for metaTag in metaTags -%}
+	<meta{% for key, value in metaTag.items() %} {{ key }}="{{ value }}"{% endfor %}>
+	{% endfor -%}
+
+{% endblock %}
+{% block title %} Log-out flow completed {% endblock %}
+
+{% block content %} 
+You have been successfully logged out.
+{% endblock %}

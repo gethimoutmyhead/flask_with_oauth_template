@@ -5,8 +5,9 @@ from flask import Flask, redirect, render_template, session, url_for, request, m
 from authlib.integrations.requests_client import OAuth2Session
 import jwt
 from datetime import datetime, timezone, timedelta
+from urllib.parse import urlencode
 
-
+import random, string
 from loadMyAppSettings import env as env
 from itertools import repeat, chain
 from functools import wraps
@@ -19,7 +20,7 @@ app.config['SERVER_NAME'] = env["app_server_url"]
 url_for_oidcserver_metadataURL = f"{env['oidc_authserver']}/.well-known/openid-configuration"
 
 request_oidcserver_metadata = fetch_url.get(url_for_oidcserver_metadataURL)
-oidcserver_metada = request_oidcserver_metadata.json()
+oidcserver_metadata = request_oidcserver_metadata.json()
 
 oidcServer_client = OAuth2Session(
 	client_id=env['oidc_clientID'],
@@ -69,7 +70,7 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 			if not token_is_present:              
 				url_redirectAfterAuth = request.full_path
 				loginURI, state = oidcServer_client.create_authorization_url(
-					url=f"{env['oidc_authserver']}/authorize",
+					url=oidcserver_metadata['authorization_endpoint'],
 					redirect_uri=url_for('oidc_server_callback', _external=True),
 					response_type='code',
 					scope='openid profile offline_access',
@@ -89,7 +90,7 @@ def hello():
 def login():
 	url_redirectAfterAuth = url_for('oidc_server_callback', _external=True)
 	loginURI, state = oidcServer_client.create_authorization_url(
-		url=f"{env['oidc_authserver']}/authorize",
+		url=oidcserver_metadata['authorization_endpoint'],
 		redirect_uri=url_redirectAfterAuth,
 		response_type='code',
 		scope='openid profile offline_access',
@@ -100,8 +101,7 @@ def login():
 
 @app.route("/after-authentication")
 def oidc_server_callback():
-	token_endpoint = f"{env['oidc_authserver']}/oauth/token"
-	returnPage = []
+	token_endpoint = oidcserver_metadata['token_endpoint']
 	bool_errorParameterReceived = 'error' in request.args.keys()
 	
 	requiredParameters = ['code', 'state']
@@ -168,8 +168,26 @@ def logged_in():
 
 @app.route ('/logout')
 def logout():
+	oidc_token_list = [session.get('authserver_token')]
+	oidc_token = filter(lambda x: x is not None, oidc_token_list)
+	id_token_list = map(lambda x: x.get('id_token'), oidc_token)
+	id_token = [*filter(lambda x: x is not None, id_token_list)]
+	params = {'client_id': env['oidc_clientID']}
+
+	if len(id_token) > 0:
+		params['id_token_hint'] = id_token[0]
+
+	length = 10
+	alphabet = string.ascii_letters + string.digits
+	state = ''.join(random.choice(alphabet) for _ in range(length))
+
 	session.clear()
-	return redirect(f'{env['oidc_authserver']}/v2/logout')
+	session['oidc_state'] = state
+	params['state'] = state
+	params['post_logout_redirect_uri'] = url_for('logged_out',_external=True)
+	url = f"{oidcserver_metadata['end_session_endpoint']}?{urlencode(params)}"
+	return redirect(url)
+	# return redirect(oidcserver_metadata['authorization_endpoint'])
 
 @app.route('/guest-user')
 def guest():
@@ -186,3 +204,19 @@ def disappoint():
 	zen = make_response(redirect('logged_in'))
 	zen.headers['X-Error-Message'] = 'sad'
 	return zen
+
+@app.route('/logged_out')
+def logged_out():
+	localState = session.get('oidc_state','')
+	responseState = request.args.get('state','x')
+
+	if localState != responseState:
+
+		page = make_response(render_template(
+					"auth-error.html", 
+					errorMessage=f"Error - local and response state mismatch\nlocal state is {session.get('oidc_state','undefined')}\nresponse state is {request.args.get('state', 'undefined')}"
+					))
+		session.clear()
+		return page
+	session.clear()
+	return render_template('logged-out.html')

@@ -11,6 +11,9 @@ URLsToCheck.append({"pageName": 'guest-user'})
 URLsToCheck.append({"pageName": 'onlytheauth', "expectedResponse": 302, "allow_redirects": False})
 URLsToCheck.append({"pageName": 'login', "expectedResponse": 302, "allow_redirects":False})
 URLsToCheck.append({"pageName": 'after-authentication', "expectedResponse": 302, "allow_redirects": False})
+URLsToCheck.append({"pageName": 'logout', "expectedResponse": 302, 'allow_redirects': False})
+URLsToCheck.append({"pageName": 'logged_out', "expectedResponse": 200})
+
 
 @pytest.mark.parametrize("testConditions", URLsToCheck)
 def test_expectedURLResponse(testConditions):
