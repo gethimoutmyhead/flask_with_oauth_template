@@ -21,7 +21,8 @@ url_for_oidcserver_metadataURL = f"{env['oidc_authserver']}/.well-known/openid-c
 
 request_oidcserver_metadata = fetch_url.get(url_for_oidcserver_metadataURL)
 oidcserver_metadata = request_oidcserver_metadata.json()
-
+oidc_jwksClient = jwt.PyJWKClient(oidcserver_metadata["jwks_uri"])
+oidc_tokenSigningAlgos = oidcserver_metadata['id_token_signing_alg_values_supported']
 oidcServer_client = OAuth2Session(
 	client_id=env['oidc_clientID'],
 	client_secret=env['oidc_clientSecret'],
@@ -74,7 +75,7 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 					redirect_uri=url_for('oidc_server_callback', _external=True),
 					response_type='code',
 					scope='openid profile offline_access',
-					state=jwt_generateRedirectState(url_redirectAfterAuth)
+					state=jwt_generateRedirectState(url_redirectAfterAuth),
 				)
 				session['oidc_state'] = state
 				return redirect(loginURI)
@@ -94,7 +95,7 @@ def login():
 		redirect_uri=url_redirectAfterAuth,
 		response_type='code',
 		scope='openid profile offline_access',
-		state=jwt_generateRedirectState(url_for('logged_in', _external=True))
+		state=jwt_generateRedirectState(url_for('logged_in', _external=True)),
 	)
 	session['oidc_state'] = state
 	return redirect(loginURI)
@@ -149,17 +150,37 @@ def oidc_server_callback():
 			redirect_uri=url_for('oidc_server_callback', _external=True),
 		)
 		# return oidc_token
-		session['authserver_token'] = oidc_token
-		state_decoded = dict_decodedJWT(session['oidc_state'])
-		redirect_url = state_decoded['intended_path']
-		response = make_response(redirect(redirect_url))
-		return response
+
 		# return (f'login achieved, redirecting to {state_decoded}')
 	except Exception as e:
 		return render_template(
 			"auth-error.html",
 			errorMessage=e
 			)
+
+	access_token = oidc_token['access_token']
+	id_token = oidc_token['id_token']
+
+	signing_key = oidc_jwksClient.get_signing_key_from_jwt(id_token)
+	try:
+		signing_key = oidc_jwksClient.get_signing_key_from_jwt(id_token)
+		validation = jwt.decode_complete(
+			id_token,
+			key=signing_key,
+			audience=env['oidc_clientID'],
+			algorithms=oidc_tokenSigningAlgos
+			)
+	except Exception as e:
+		return render_template(
+			"auth-error.html",
+			errorMessage=f"id_token validation error: {e}" 
+			)
+
+	session['authserver_token'] = oidc_token
+	state_decoded = dict_decodedJWT(session['oidc_state'])
+	redirect_url = state_decoded['intended_path']
+	response = make_response(redirect(redirect_url))
+	return response
 	# return f"AuthServer response error - missing arguments, arguments present are {request.args.keys()}"
 
 @app.route('/logged-in')
@@ -220,3 +241,18 @@ def logged_out():
 		return page
 	session.clear()
 	return render_template('logged-out.html')
+
+@app.route('/user_details')
+@authorization_check()
+def user_details():
+	oidcToken = [*filter(lambda x: x is not None, [session.get('authserver_token')])]
+	id_token = [*filter(lambda x: x is not None, map(lambda x: x.get('id_token'), oidcToken))]
+	access_token = [*filter(lambda x: x is not None, map(lambda x: x.get('access_token'), oidcToken))]
+
+	userMeta = fetch_url.get(oidcserver_metadata['userinfo_endpoint'], headers={'authorization': f"Bearer {access_token[0]}"})
+	userMeta
+	return render_template(
+			"auth-error.html",
+			errorMessage=userMeta.content
+			)
+

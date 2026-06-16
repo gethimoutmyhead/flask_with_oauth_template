@@ -12,7 +12,7 @@ requests = "*"
 pytest = "*"
 importlib = "*"
 beautifulsoup4 = "*"
-pyjwt = "*"
+pyjwt = {extras = ["crypto"], version = "*"}
 
 [dev-packages]
 
