@@ -74,8 +74,9 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 					url=oidcserver_metadata['authorization_endpoint'],
 					redirect_uri=url_for('oidc_server_callback', _external=True),
 					response_type='code',
-					scope='openid profile offline_access',
+					scope='openid profile offline_access read:users read:roles',
 					state=jwt_generateRedirectState(url_redirectAfterAuth),
+					audience='https://dev-ei6babp7krz2qnk3.au.auth0.com/api/v2/',
 				)
 				session['oidc_state'] = state
 				return redirect(loginURI)
@@ -94,8 +95,9 @@ def login():
 		url=oidcserver_metadata['authorization_endpoint'],
 		redirect_uri=url_redirectAfterAuth,
 		response_type='code',
-		scope='openid profile offline_access',
+		scope='openid profile offline_access read:current_user read:roles',
 		state=jwt_generateRedirectState(url_for('logged_in', _external=True)),
+		audience='https://dev-ei6babp7krz2qnk3.au.auth0.com/api/v2/',
 	)
 	session['oidc_state'] = state
 	return redirect(loginURI)
@@ -250,7 +252,8 @@ def user_details():
 	access_token = [*filter(lambda x: x is not None, map(lambda x: x.get('access_token'), oidcToken))]
 
 	userMeta = fetch_url.get(oidcserver_metadata['userinfo_endpoint'], headers={'authorization': f"Bearer {access_token[0]}"})
-	userMeta
+	# getUserURL=f"{env['oidc_authserver']}/api/v2/users/{fillThisWithAccessTokenSub}"
+	# z=requests.get(getUserURL,headers={'authorization':f"Bearer {access_token}"})
 	return render_template(
 			"auth-error.html",
 			errorMessage=userMeta.content
