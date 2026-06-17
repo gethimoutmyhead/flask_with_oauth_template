@@ -11,7 +11,7 @@ def doesModuleExist(moduleName):
 		pytest.fail(f"no module {moduleName}")
 
 def test_envModulesAvailable():
-	modulesToTest = ['os','dotenv']
+	modulesToTest = ['os','dotenv','loadMyAppSettings', 'user_cred']
 	z = list(map(doesModuleExist, modulesToTest))
 
 
