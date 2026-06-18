@@ -4,6 +4,7 @@ import pytest
 import requests
 from requests import Request as urlFetch
 import json
+import flaskCookieMaker
 # def test_testUser_credentials_present():
 # assert len(user_credentials.keys()) > 5, 'FAIL: no user credentials'
 
@@ -48,9 +49,10 @@ def test_getUserTokens():
 
 @pytest.mark.order(4)
 def test_accessAuthPageWithoutLogin():
-	zen = requests.get(f"https://{env['app_server_url']}/onlytheauth",verify=env['publicCert_site'], allow_redirects=False)
-	assert zen.status_code == 302, f'expected redirect, got {zen.status_code}'
+	page = requests.get(f"https://{env['app_server_url']}/onlytheauth",verify=env['publicCert_site'], allow_redirects=False)
+	assert page.status_code == 302, f'expected redirect, got {page.status_code}'
 
+@pytest.mark.order(5)
 def test_accessAuthPageWithLogin():
-	zen = surfSession.get(f"https://{env['app_server_url']}/onlytheauth",verify=env['publicCert_site'], allow_redirects=False)
-	assert zen.status_code == 200, f'expected redirect, got {zen.status_code}'
+	page = surfSession.get(f"https://{env['app_server_url']}/onlytheauth",verify=env['publicCert_site'], allow_redirects=False)
+	assert page.status_code == 200, f'expected page to load, got {page.status_code}'

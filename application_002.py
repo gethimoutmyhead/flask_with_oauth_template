@@ -37,6 +37,16 @@ def check_loggedIn(func):
 		return func(*args)
 	return checkLog
 
+def URIandState_request_authserverLoginURL(clientSession, dict_idProviderMetaData, url_audience, url_callbackAfterLogin, url_destinationAfterAuth):
+	loginURI, state = clientSession.create_authorization_url(
+		url=dict_idProviderMetaData['authorization_endpoint'],
+		redirect_uri=url_callbackAfterLogin,
+		response_type='code',
+		scope='openid profile offline_access read:current_user',
+		state=jwt_generateRedirectState(url_destinationAfterAuth),
+		audience=url_audience
+	)
+	return loginURI, state
 def jwt_generateRedirectState(str_urlToRedirect):
     """
     Create a short-lived signed JWT capturing the page the user is currently
@@ -69,15 +79,24 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 		def wrapper(*args, **kwargs):
 			token_is_present = 'authserver_token' in session.keys()
 			if not token_is_present:              
-				url_redirectAfterAuth = request.full_path
-				loginURI, state = oidcServer_client.create_authorization_url(
-					url=oidcserver_metadata['authorization_endpoint'],
-					redirect_uri=url_for('oidc_server_callback', _external=True),
-					response_type='code',
-					scope='openid profile offline_access read:users read:roles',
-					state=jwt_generateRedirectState(url_redirectAfterAuth),
-					audience='https://dev-ei6babp7krz2qnk3.au.auth0.com/api/v2/',
-				)
+				# url_redirectAfterAuth = request.full_path
+				# loginURI, state = oidcServer_client.create_authorization_url(
+				# 	url=oidcserver_metadata['authorization_endpoint'],
+				# 	redirect_uri=url_for('oidc_server_callback', _external=True),
+				# 	response_type='code',
+				# 	scope='openid profile offline_access read:users read:roles',
+				# 	state=jwt_generateRedirectState(url_redirectAfterAuth),
+				# 	audience='https://dev-ei6babp7krz2qnk3.au.auth0.com/api/v2/',
+				# )
+				# session['oidc_state'] = state
+				# return redirect(loginURI)
+				loginURI, state = URIandState_request_authserverLoginURL(
+					clientSession=oidcServer_client,
+					dict_idProviderMetaData=oidcserver_metadata,
+					url_audience=f"{env['oidc_authserver']}/api/v2/",
+					url_callbackAfterLogin=url_for('oidc_server_callback', _external=True),
+					url_destinationAfterAuth=request.full_path,
+				)	
 				session['oidc_state'] = state
 				return redirect(loginURI)
 			return view_func(*args, **kwargs)
@@ -91,14 +110,21 @@ def hello():
 @app.route("/login")
 def login():
 	url_redirectAfterAuth = url_for('oidc_server_callback', _external=True)
-	loginURI, state = oidcServer_client.create_authorization_url(
-		url=oidcserver_metadata['authorization_endpoint'],
-		redirect_uri=url_redirectAfterAuth,
-		response_type='code',
-		scope='openid profile offline_access read:current_user read:roles',
-		state=jwt_generateRedirectState(url_for('logged_in', _external=True)),
-		audience='https://dev-ei6babp7krz2qnk3.au.auth0.com/api/v2/',
-	)
+	# loginURI, state = oidcServer_client.create_authorization_url(
+	# 	url=oidcserver_metadata['authorization_endpoint'],
+	# 	redirect_uri=url_redirectAfterAuth,
+	# 	response_type='code',
+	# 	scope='openid profile offline_access read:current_user read:roles',
+	# 	state=jwt_generateRedirectState(url_for('logged_in', _external=True)),
+	# 	audience='https://dev-ei6babp7krz2qnk3.au.auth0.com/api/v2/',
+	# )
+	loginURI, state = URIandState_request_authserverLoginURL(
+			clientSession=oidcServer_client,
+			dict_idProviderMetaData=oidcserver_metadata,
+			url_audience=f"{env['oidc_authserver']}/api/v2/",
+			url_callbackAfterLogin=url_for('oidc_server_callback', _external=True),
+			url_destinationAfterAuth=url_for('logged_in', _external=True),
+		)	
 	session['oidc_state'] = state
 	return redirect(loginURI)
 
