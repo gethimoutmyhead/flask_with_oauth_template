@@ -1,4 +1,4 @@
-from user_cred import env as user_credentials
+from user_cred import user_credentials
 from loadMyAppSettings import env
 import pytest
 import requests
@@ -21,15 +21,15 @@ def test_validateKey(keyToValidate):
 	assert keyToValidate in user_credentials.keys(), f"{keyToValidate} not in user_cred"
 
 @pytest.mark.order(3)
-def test_getUserTokens():
+def test_getUserTokens_authenticateSurfSession():
 	url=f"{env['oidc_authserver']}/oauth/token"
 	headers = {
 		'content-type': 'application/x-www-form-urlencoded',
 	}
 	data = {
 		'grant_type': 'password',
-		'username': f'{env["testuser_username"]}',
-		'password': f'{env["testuser_password"]}',
+		'username': f'{user_credentials["testuser_username"]}',
+		'password': f'{user_credentials["testuser_password"]}',
 		'scope': 'openid profile',
 		'client_id': f'{env["oidc_clientID"]}',
 		'client_secret': f'{env["oidc_clientSecret"]}'
@@ -47,12 +47,33 @@ def test_getUserTokens():
 	]
 	assert not False in checkList, f"missing data in oidc_token, contains {oidc_token}"
 
+	authserver_token = {'authserver_token': oidc_token}
+	authserver_token_asFlaskCookie = flaskCookieMaker.encodeFlaskCookie(env['app_cookieSigning_secret'], authserver_token)
+
+	flaskSessionCookie = requests.cookies.create_cookie(
+			name='session',
+			value=authserver_token_asFlaskCookie,
+			domain='127.0.0.1',
+			path='/',
+			secure=True,
+			rest={'HttpOnly': True}
+		)
+
+	surfSession.cookies.set_cookie(flaskSessionCookie)
+
 @pytest.mark.order(4)
 def test_accessAuthPageWithoutLogin():
 	page = requests.get(f"https://{env['app_server_url']}/onlytheauth",verify=env['publicCert_site'], allow_redirects=False)
 	assert page.status_code == 302, f'expected redirect, got {page.status_code}'
 
 @pytest.mark.order(5)
+def test_confirmSessionCookie():
+	cookies = surfSession.cookies
+
+	cookiesNamedSession = [*filter(lambda cookie: 'session' in cookie.name, cookies)]
+	assert len(cookiesNamedSession) > 0, f"cookie dump {cookies}"
+
+@pytest.mark.order(6)
 def test_accessAuthPageWithLogin():
 	page = surfSession.get(f"https://{env['app_server_url']}/onlytheauth",verify=env['publicCert_site'], allow_redirects=False)
 	assert page.status_code == 200, f'expected page to load, got {page.status_code}'
