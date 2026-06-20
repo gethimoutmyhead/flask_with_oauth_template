@@ -8,24 +8,24 @@ from datetime import datetime, timezone, timedelta
 from urllib.parse import urlencode
 
 import random, string
-from loadMyAppSettings import env as env
+from loadMyAppSettings import flaskAppSettings, authServerSettings
 from itertools import repeat, chain
 from functools import wraps
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = env["app_cookieSigning_secret"]
-app.config['SERVER_NAME'] = env["app_server_url"]
+app.config['SECRET_KEY'] = flaskAppSettings["app_cookieSigning_secret"]
+app.config['SERVER_NAME'] = flaskAppSettings["app_server_url"]
 
-url_for_oidcserver_metadataURL = f"{env['oidc_authserver']}/.well-known/openid-configuration"
+url_for_oidcserver_metadataURL = f"{authServerSettings['oidc_authserver']}/.well-known/openid-configuration"
 
 request_oidcserver_metadata = fetch_url.get(url_for_oidcserver_metadataURL)
 oidcserver_metadata = request_oidcserver_metadata.json()
 oidc_jwksClient = jwt.PyJWKClient(oidcserver_metadata["jwks_uri"])
 oidc_tokenSigningAlgos = oidcserver_metadata['id_token_signing_alg_values_supported']
 oidcServer_client = OAuth2Session(
-	client_id=env['oidc_clientID'],
-	client_secret=env['oidc_clientSecret'],
+	client_id=authServerSettings['oidc_clientID'],
+	client_secret=authServerSettings['oidc_clientSecret'],
 )
 
 def check_loggedIn(func):
@@ -93,7 +93,7 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				loginURI, state = URIandState_request_authserverLoginURL(
 					clientSession=oidcServer_client,
 					dict_idProviderMetaData=oidcserver_metadata,
-					url_audience=f"{env['oidc_authserver']}/api/v2/",
+					url_audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
 					url_callbackAfterLogin=url_for('oidc_server_callback', _external=True),
 					url_destinationAfterAuth=request.full_path,
 				)	
@@ -121,7 +121,7 @@ def login():
 	loginURI, state = URIandState_request_authserverLoginURL(
 			clientSession=oidcServer_client,
 			dict_idProviderMetaData=oidcserver_metadata,
-			url_audience=f"{env['oidc_authserver']}/api/v2/",
+			url_audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
 			url_callbackAfterLogin=url_for('oidc_server_callback', _external=True),
 			url_destinationAfterAuth=url_for('logged_in', _external=True),
 		)	
@@ -195,7 +195,7 @@ def oidc_server_callback():
 		validation = jwt.decode_complete(
 			id_token,
 			key=signing_key,
-			audience=env['oidc_clientID'],
+			audience=authServerSettings['oidc_clientID'],
 			algorithms=oidc_tokenSigningAlgos
 			)
 	except Exception as e:
@@ -221,7 +221,7 @@ def logout():
 	oidc_token = filter(lambda x: x is not None, oidc_token_list)
 	id_token_list = map(lambda x: x.get('id_token'), oidc_token)
 	id_token = [*filter(lambda x: x is not None, id_token_list)]
-	params = {'client_id': env['oidc_clientID']}
+	params = {'client_id': authServerSettings['oidc_clientID']}
 
 	if len(id_token) > 0:
 		params['id_token_hint'] = id_token[0]

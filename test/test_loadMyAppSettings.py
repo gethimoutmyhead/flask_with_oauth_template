@@ -1,5 +1,5 @@
-from loadMyAppSettings import env as env
-
+from loadMyAppSettings import flaskAppSettings, authServerSettings
+from itertools import compress, repeat
 
 
 def checkEnvVariable(varName):
@@ -15,10 +15,36 @@ def is_envVariable_NotEmptyString(varName):
 
 	assert len(env[varName]) > 0, f"varName length is {len(env[varName])}"
 
+def is_configItemsValid(keysToCheck, dictToCheck):
+	checklist_keysPresent = [*map(lambda key, dict: key in dict.keys(), keysToCheck, repeat(dictToCheck))]
+	keyValuesToVerify = keysToCheck * (not (False in checklist_keysPresent))
+	checklist_keyValIsString = [*map(lambda key, dict: type(dict[key]) == str, keyValuesToVerify, repeat(dictToCheck))]
+	keyValuesThatAreStrings = list(compress(keyValuesToVerify, checklist_keyValIsString))
+	checklist_strlengthNonzero = [*map(lambda key, dict: len(dict[key]) > 0, keyValuesThatAreStrings, repeat(dictToCheck))]
 
-def test_env_AppVariables_exist():
-	variablesNeeded = ['app_cookieSigning_secret', 'app_server_url']
-	list(map(is_envVariable_NotEmptyString, variablesNeeded))
+
+	return {
+		'checklist_keysPresent': checklist_keysPresent,
+		'checklist_keysAreStrings': checklist_keyValIsString,
+		'checklist_nonzeroStrings': checklist_strlengthNonzero,
+	}
+def test_flaskAppSettings_exist():
+	keysNeeded = ['app_cookieSigning_secret', 'app_server_url']
+
+	# checklist_keysPresent = [*map(lambda key: key in flaskAppSettings.keys(), keysNeeded)]
+
+	configItemsValidity = is_configItemsValid(keysNeeded, flaskAppSettings)
+	assert not (False in configItemsValidity['checklist_keysPresent']), f"flaskAppSettings required keys missing, found {flaskAppSettings.keys()}"
+	assert not (False in configItemsValidity['checklist_keysAreStrings']), f"flaskAppSettings keys are not strings, found {[*map(lambda val: type(val), flaskAppSettings.values())]}"
+	assert not (False in configItemsValidity['checklist_nonzeroStrings']), f"flaskAppSettings key values missing data, found {flaskAppSettings.values()}"
+
+	# list(map(is_envVariable_NotEmptyString, variablesNeeded))
+
 def test_env_oidcVariables_exist():
-	variablesNeeded = [ 'oidc_clientID', 'oidc_clientSecret', 'oidc_authserver']
-	list(map(is_envVariable_NotEmptyString, variablesNeeded))
+	keysNeeded = [ 'oidc_clientID', 'oidc_clientSecret', 'oidc_authserver']
+	# list(map(is_envVariable_NotEmptyString, variablesNeeded))
+
+	configItemsValidity = is_configItemsValid(keysNeeded, authServerSettings)
+	assert not (False in configItemsValidity['checklist_keysPresent']), f"authServerSettings required keys missing,found {authServerSettings.keys()} "
+	assert not (False in configItemsValidity['checklist_keysAreStrings']), f"authServerSettings keys are not strings, found {[*map(lambda val: type(val), authServerSettings.values())]}"
+	assert not (False in configItemsValidity['checklist_nonzeroStrings']), f"authServerSettings key values missing data, found {authServerSettings.values()}"

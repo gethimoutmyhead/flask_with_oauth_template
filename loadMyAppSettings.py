@@ -1,11 +1,11 @@
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 from os import environ as env
 
 filePath_flaskAppSettings = 'flaskApp-settings.env'
-load_dotenv(filePath_flaskAppSettings)
+flaskAppSettings = dotenv_values(filePath_flaskAppSettings)
 
-filePath_oidcSettings = env['authserver_configEnv']
-load_dotenv(filePath_oidcSettings)
+filePath_oidcSettings = flaskAppSettings['authserver_configEnv']
+authServerSettings = dotenv_values(filePath_oidcSettings)
 
 
 
