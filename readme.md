@@ -12,6 +12,7 @@ Main branch auth0-oidc is set up to work as an auth0 client
 * authorization tests that utilise permittedRoles, permittedAttributes
 * authorization code that uses permittedRoles and permittedAttributes
 * set up tests to see that auth0 roles are being included in access token
+* add access token validation to flask App (can lift this from the test function)
 * template functions that allow user metadata, app metadata modifications
 * global variable to set meta tag 'application-name' in templates
 * push form that allows user creation

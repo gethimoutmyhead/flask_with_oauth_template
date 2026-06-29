@@ -42,7 +42,7 @@ def URIandState_request_authserverLoginURL(clientSession, dict_idProviderMetaDat
 		url=dict_idProviderMetaData['authorization_endpoint'],
 		redirect_uri=url_callbackAfterLogin,
 		response_type='code',
-		scope='openid profile offline_access read:current_user',
+		scope='openid profile read:current_user',
 		state=jwt_generateRedirectState(url_destinationAfterAuth),
 		audience=url_audience
 	)
