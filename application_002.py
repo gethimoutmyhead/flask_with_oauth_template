@@ -22,6 +22,8 @@ url_for_oidcserver_metadataURL = f"{authServerSettings['oidc_authserver']}/.well
 request_oidcserver_metadata = fetch_url.get(url_for_oidcserver_metadataURL)
 oidcserver_metadata = request_oidcserver_metadata.json()
 oidc_jwksClient = jwt.PyJWKClient(oidcserver_metadata["jwks_uri"])
+accessToken_jwksClient = jwt.PyJWKClient(f"{authServerSettings['oidc_authserver']}/.well-known/jwks.json")
+
 oidc_tokenSigningAlgos = oidcserver_metadata['id_token_signing_alg_values_supported']
 oidcServer_client = OAuth2Session(
 	client_id=authServerSettings['oidc_clientID'],
@@ -77,8 +79,37 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 	def decorator(view_func):
 		@wraps(view_func)
 		def wrapper(*args, **kwargs):
-			token_is_present = 'authserver_token' in session.keys()
-			if not token_is_present:              
+			checklist_authenticatedUser = ['authserver_token' in session.keys()]
+
+			# signing_key = oidc_jwksClient.get_signing_key_from_jwt(id_token)
+			# try:
+			# 	signing_key = oidc_jwksClient.get_signing_key_from_jwt(id_token)
+			# 	validation = jwt.decode_complete(
+			# 		id_token,
+			# 		key=signing_key,
+			# 		audience=authServerSettings['oidc_clientID'],
+			# 		algorithms=oidc_tokenSigningAlgos
+			# 		)
+			# except Exception as e:
+			# 	return render_template(
+			# 		"auth-error.html",
+			# 		errorMessage=f"id_token validation error: {e}" 
+			# 		)
+
+			# try:
+			# 	signing_key = accessToken_jwksClient.get_signing_key_from_jwt(access_token)
+			# 	dict_accessTokenDecoded = jwt.decode_complete(
+			# 		access_token,
+			# 		key=signing_key,
+			# 		audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
+			# 		algorithms=['RS256']#oidc_tokenSigningAlgos
+			# 		)
+			# except Exception as e:
+			# 	return render_template(
+			# 		"auth-error.html",
+			# 		errorMessage=f"access_token validation error: {e}" 
+			# 		)
+			if not all(checklist_authenticatedUser):              
 				# url_redirectAfterAuth = request.full_path
 				# loginURI, state = oidcServer_client.create_authorization_url(
 				# 	url=oidcserver_metadata['authorization_endpoint'],
@@ -204,6 +235,20 @@ def oidc_server_callback():
 			errorMessage=f"id_token validation error: {e}" 
 			)
 
+	try:
+		signing_key = accessToken_jwksClient.get_signing_key_from_jwt(access_token)
+		dict_accessTokenDecoded = jwt.decode_complete(
+			access_token,
+			key=signing_key,
+			audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
+			algorithms=['RS256']#oidc_tokenSigningAlgos
+			)
+	except Exception as e:
+		return render_template(
+			"auth-error.html",
+			errorMessage=f"access_token validation error: {e}" 
+			)
+
 	session['authserver_token'] = oidc_token
 	state_decoded = dict_decodedJWT(session['oidc_state'])
 	redirect_url = state_decoded['intended_path']
@@ -278,10 +323,12 @@ def user_details():
 	access_token = [*filter(lambda x: x is not None, map(lambda x: x.get('access_token'), oidcToken))]
 
 	userMeta = fetch_url.get(oidcserver_metadata['userinfo_endpoint'], headers={'authorization': f"Bearer {access_token[0]}"})
+
 	# getUserURL=f"{env['oidc_authserver']}/api/v2/users/{fillThisWithAccessTokenSub}"
 	# z=requests.get(getUserURL,headers={'authorization':f"Bearer {access_token}"})
+
 	return render_template(
-			"auth-error.html",
-			errorMessage=userMeta.content
+			"response.html",
+			responseMessage=userMeta.content
 			)
 
