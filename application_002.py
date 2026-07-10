@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 import random, string
 from loadMyAppSettings import flaskAppSettings, authServerSettings
 from itertools import repeat, chain
-from functools import wraps
+from functools import wraps, reduce
 
 app = Flask(__name__)
 
@@ -75,11 +75,73 @@ def dict_decodedJWT(myjwt):
 	payload = jwt.decode(myjwt, app.config['SECRET_KEY'], algorithms=['HS256'])
 	return payload
 
+def authserverToken_validateIdToken(token):
+	list_requiredIdTokenClaims = ['iss', 'sub', 'aud',f'https://{flaskAppSettings['app_server_url']}/roles']
+
+	try:
+		signing_key = oidc_jwksClient.get_signing_key_from_jwt(token['id_token'])
+		dict_idTokenDecoded = jwt.decode_complete(
+			token['id_token'],
+			key=signing_key,
+			audience=authServerSettings['oidc_clientID'],
+			algorithms=oidc_tokenSigningAlgos,
+			options={"require":list_requiredIdTokenClaims},
+			)
+	except jwt.MissingRequiredClaimError as e:
+		return f"AppAuthzERROR: id token - {e}"
+	except Exception as e:
+		return f'AppAuthzERROR: id token failed to decode - {e}' 
+
+	return token
+
+def authserverToken_validateAccessToken(token):
+	list_requiredIdTokenClaims = ['iss', 'sub', 'aud',f'https://{flaskAppSettings['app_server_url']}/roles']
+
+	try:
+		signing_key = oidc_jwksClient.get_signing_key_from_jwt(token['id_token'])
+		dict_idTokenDecoded = jwt.decode_complete(
+			token['access_token'],
+			key=signing_key,
+			audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
+			algorithms=oidc_tokenSigningAlgos,
+			options={"require":list_requiredIdTokenClaims},
+			)
+	except jwt.MissingRequiredClaimError as e:
+		return f"AppAuthzERROR: access token - {e}"
+	except Exception as e:
+		return f'AppAuthzERROR: access token failed to decode - {e}' 
+
+	return token
+
+
 def authorization_check(permittedRoles=[], permittedAttributes=[]):
 	def decorator(view_func):
 		@wraps(view_func)
 		def wrapper(*args, **kwargs):
 			checklist_authenticatedUser = ['authserver_token' in session.keys()]
+			authserver_token = session.get('authserver_token', 'AppAuthzERROR: authserver token not present')
+
+			authserverToken_check1 = lambda token: {
+				True: token,
+				False: "AppAuthzERROR: access token not present"
+			}[('access_token' in token)]
+			authserverToken_check2 = lambda token: {
+				True: token,
+				False: "AppAuthzERROR: id token not present"
+			}[('id_token' in token)]
+
+			checklist_authzFunctions = [authserverToken_check1,
+			authserverToken_check2,
+			authserverToken_validateIdToken,
+			authserverToken_validateAccessToken]
+
+			checks = reduce(lambda acc, func: {
+			True: func(acc),
+			False: acc,
+			}[('AppAuthzERROR:' not in acc)], checklist_authzFunctions, authserver_token)
+
+			# token.get('id_token', 'AppAuthzERROR: id token not present')
+			 
 
 			# signing_key = oidc_jwksClient.get_signing_key_from_jwt(id_token)
 			# try:
@@ -109,7 +171,7 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 			# 		"auth-error.html",
 			# 		errorMessage=f"access_token validation error: {e}" 
 			# 		)
-			if not all(checklist_authenticatedUser):              
+			if ('AppAuthzERROR' in checks):              
 				# url_redirectAfterAuth = request.full_path
 				# loginURI, state = oidcServer_client.create_authorization_url(
 				# 	url=oidcserver_metadata['authorization_endpoint'],
@@ -129,7 +191,10 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 					url_destinationAfterAuth=request.full_path,
 				)	
 				session['oidc_state'] = state
-				return redirect(loginURI)
+				response = make_response(redirect(loginURI))
+				response.headers['X-Error-Message'] = checks
+				response.headers['X-Error-Title'] = 'App Authorization Error'
+				return response
 			return view_func(*args, **kwargs)
 		return wrapper
 	return decorator

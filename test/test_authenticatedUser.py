@@ -6,6 +6,7 @@ from requests import Request as urlFetch
 import json
 import flaskCookieMaker
 from itertools import repeat
+from functools import reduce
 import jwt
 
 # def test_testUser_credentials_present():
@@ -74,7 +75,7 @@ def test_getUserTokens_authenticateSurfSession():
 	surfSession.cookies.set_cookie(flaskSessionCookie)
 
 @pytest.mark.order(4)
-def test_accessAuthPageWithoutLogin():
+def test_accessAuthzPageWithoutAuthn():
 	page = requests.get(f"https://{flaskAppSettings['app_server_url']}/onlytheauth",verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
 	assert page.status_code == 302, f'expected redirect, got {page.status_code}'
 
@@ -144,6 +145,33 @@ def test_confirmSessionCookie():
 
 
 @pytest.mark.order(6)
-def test_accessAuthPageWithLogin():
+def test_accessAuthzPageWithAuthn():
 	page = surfSession.get(f"https://{flaskAppSettings['app_server_url']}/onlytheauth",verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
-	assert page.status_code == 200, f'expected page to load, got {page.status_code}'
+	assert page.status_code == 200, f'expected page to load, got {page.status_code}\n {page.headers}'
+
+
+@pytest.mark.order(7)
+def test_accessAuthzPageWithInvalidTokens():
+	target_url=f"https://{flaskAppSettings['app_server_url']}/onlytheauth"
+	cookies = {"authserver_token": 'someNonsense'}
+ 
+	response = requests.get(target_url, cookies=cookies, allow_redirects=False,verify=flaskAppSettings['publicCert_site'])
+ 
+	# 1. Assert the response is a redirect.
+	assert response.status_code in [301, 302, 303, 307, 308], (
+		f"Expected a redirect status code (one of [301, 302, 303, 307, 308]), "
+		f"got {response.status_code} instead. "
+		f"Response body: {response.text[:500]!r}"
+	)
+ 
+	# 2. Assert the expected error header is present with the correct value.
+	assert "X-Error-Message" in response.headers, (
+		f"Expected 'X-Error-Message' header in response, but it was missing. "
+		f"Headers received: {dict(response.headers)}"
+	)
+ 
+	assert response.headers["X-Error-Message"] == "AppAuthzERROR: authserver token not present", (
+		f"Expected X-Error-Message to be 'authentication token missing', "
+		f"got {response.headers['X-Error-Message']!r} instead."
+	)
+ 
