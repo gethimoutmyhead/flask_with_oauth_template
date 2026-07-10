@@ -110,14 +110,21 @@ def test_confirmSessionCookie():
 	# assert not (False in checklist_accessTokenKeys), f"access token key requires {list_requiredTokenKeys}, got {dict_accessTokenDecoded.keys()}"
 
 	# signing_key = oidc_jwksClient.get_signing_key_from_jwt(id_token)
+
+	list_requiredAccessTokenClaims = ['iss', 'sub', 'aud',f'https://{flaskAppSettings['app_server_url']}/roles']
+	list_requiredIdTokenClaims = ['iss', 'sub', 'aud',f'https://{flaskAppSettings['app_server_url']}/roles']
+
 	try:
 		signing_key = oidc_jwksClient.get_signing_key_from_jwt(dict_authServerToken['id_token'])
 		dict_idTokenDecoded = jwt.decode_complete(
 			dict_authServerToken['id_token'],
 			key=signing_key,
 			audience=authServerSettings['oidc_clientID'],
-			algorithms=oidc_tokenSigningAlgos
+			algorithms=oidc_tokenSigningAlgos,
+			options={"require":list_requiredIdTokenClaims},
 			)
+	except jwt.MissingRequiredClaimError as e:
+		pytest.fail(f"{e}")
 	except Exception as e:
 		pytest.fail(f'id token failed to decode - {e}')
 
@@ -127,23 +134,15 @@ def test_confirmSessionCookie():
 			dict_authServerToken['access_token'],
 			key=signing_key,
 			audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
-			algorithms=['RS256']#oidc_tokenSigningAlgos
+			algorithms=['RS256'],
+			options={"require":list_requiredAccessTokenClaims},
 			)
+	except jwt.MissingRequiredClaimError as e:
+		pytest.fail(f"{e}")
 	except Exception as e:
 		pytest.fail(f'access token failed to decode - {e} \n access token {dict_authServerToken["access_token"]}')
 
 
-	list_requiredAccessTokenClaims = ['iss', 'sub', 'aud',f'https://{flaskAppSettings['app_server_url']}/roles']
-	list_requiredIdTokenClaims = ['iss', 'sub', 'aud',f'https://{flaskAppSettings['app_server_url']}/roles']
-
-	checklist_requiredAccessTokenClaims = all(map(lambda key, dict: key in dict.keys(), list_requiredAccessTokenClaims, repeat(dict_accessTokenDecoded['payload'])))
-	checklist_requiredIdTokenClaims = all(map(lambda key, dict: key in dict.keys(), list_requiredIdTokenClaims, repeat(dict_idTokenDecoded['payload'])))
-
-
-	assert checklist_requiredAccessTokenClaims, f"access token requires claims {list_requiredAccessTokenClaims} \n access token {dict_accessTokenDecoded}"
-
-	assert checklist_requiredIdTokenClaims, f"id token requires claims {list_requiredIdTokenClaims} \n id token {dict_idTokenDecoded}"
-	
 @pytest.mark.order(6)
 def test_accessAuthPageWithLogin():
 	page = surfSession.get(f"https://{flaskAppSettings['app_server_url']}/onlytheauth",verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
