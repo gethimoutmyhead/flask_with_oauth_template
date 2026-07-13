@@ -353,10 +353,11 @@ def guest():
 	return ('only a guest here')
 
 
-@app.route('/onlytheauth')
+@app.route('/authenticated')
 @authorization_check()
-def theauth():
-	return (f'the auth is here {session['authserver_token']}')
+def authenticated():
+	return render_template('authenticated.html', authserver_token = session['authserver_token'])
+	# return (f'the auth is here {session['authserver_token']}')
 
 @app.route('/disappoint')
 def disappoint():

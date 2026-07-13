@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 URLsToCheck = []
 URLsToCheck.append({"pageName": ''})
 URLsToCheck.append({"pageName": 'guest-user'})
-URLsToCheck.append({"pageName": 'onlytheauth', "expectedResponse": 302, "allow_redirects": False})
+URLsToCheck.append({"pageName": 'authenticated', "expectedResponse": 302, "allow_redirects": False})
 URLsToCheck.append({"pageName": 'login', "expectedResponse": 302, "allow_redirects":False})
 URLsToCheck.append({"pageName": 'after-authentication', "expectedResponse": 302, "allow_redirects": False})
 URLsToCheck.append({"pageName": 'logout', "expectedResponse": 302, 'allow_redirects': False})

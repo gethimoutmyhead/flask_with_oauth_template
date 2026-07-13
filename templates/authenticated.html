@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{%block addMetaTags %}
+	{% for metaTag in metaTags -%}
+	<meta{% for key, value in metaTag.items() %} {{ key }}="{{ value }}"{% endfor %}>
+	{% endfor -%}
+
+{% endblock %}
+{% block title %} Authentication Successful {% endblock %}
+
+{% block content %} 
+
+<h1> Authentication cookie is present </h1>
+<br>
+
+Access Token is {{ authserver_token.access_token }}
+<br>
+
+identity token is {{ authserver_token.id_token }}
+
+{% endblock %}

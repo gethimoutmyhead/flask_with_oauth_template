@@ -76,7 +76,7 @@ def test_getUserTokens_authenticateSurfSession():
 
 @pytest.mark.order(4)
 def test_accessAuthzPageWithoutAuthn():
-	page = requests.get(f"https://{flaskAppSettings['app_server_url']}/onlytheauth",verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
+	page = requests.get(f"https://{flaskAppSettings['app_server_url']}/authenticated",verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
 	assert page.status_code == 302, f'expected redirect, got {page.status_code}'
 
 @pytest.mark.order(5)
@@ -146,13 +146,13 @@ def test_confirmSessionCookie():
 
 @pytest.mark.order(6)
 def test_accessAuthzPageWithAuthn():
-	page = surfSession.get(f"https://{flaskAppSettings['app_server_url']}/onlytheauth",verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
+	page = surfSession.get(f"https://{flaskAppSettings['app_server_url']}/authenticated",verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
 	assert page.status_code == 200, f'expected page to load, got {page.status_code}\n {page.headers}'
 
 
 @pytest.mark.order(7)
 def test_accessAuthzPageWithInvalidTokens():
-	target_url=f"https://{flaskAppSettings['app_server_url']}/onlytheauth"
+	target_url=f"https://{flaskAppSettings['app_server_url']}/authenticated"
 	cookies = {"authserver_token": 'someNonsense'}
  
 	response = requests.get(target_url, cookies=cookies, allow_redirects=False,verify=flaskAppSettings['publicCert_site'])
