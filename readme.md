@@ -39,4 +39,5 @@ Main branch auth0-oidc is set up to work as an auth0 client
 * script that creates new, or updates existing .env files (makes it easier to deploy anywhere)
 * script to configure gunicorn.conf.py
 
-
+### refactoring
+* the authorization_check has an if for logged out / authenticated / authorized; should be able to refactor these
