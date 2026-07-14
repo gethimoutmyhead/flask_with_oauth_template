@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{%block addMetaTags %}
+	{% for metaTag in metaTags -%}
+	<meta{% for key, value in metaTag.items() %} {{ key }}="{{ value }}"{% endfor %}>
+	{% endfor -%}
+
+{% endblock %}
+{% block title %} 403 Forbidden {% endblock %}
+
+{% block content %} 
+{{ errorMessage }}
+<br>
+{% endblock %}

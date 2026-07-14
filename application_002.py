@@ -10,8 +10,8 @@ from urllib.parse import urlencode
 import random, string
 from loadMyAppSettings import flaskAppSettings, authServerSettings
 from itertools import repeat, chain
-from functools import wraps, reduce
-
+from functools import wraps, reduce, partial, Placeholder
+from functions_tokenValidation import authserverToken_validateIdToken, authserverToken_validateAccessToken
 app = Flask(__name__)
 
 app.config['SECRET_KEY'] = flaskAppSettings["app_cookieSigning_secret"]
@@ -75,45 +75,6 @@ def dict_decodedJWT(myjwt):
 	payload = jwt.decode(myjwt, app.config['SECRET_KEY'], algorithms=['HS256'])
 	return payload
 
-def authserverToken_validateIdToken(token):
-	list_requiredIdTokenClaims = ['iss', 'sub', 'aud',f'https://{flaskAppSettings['app_server_url']}/roles']
-
-	try:
-		signing_key = oidc_jwksClient.get_signing_key_from_jwt(token['id_token'])
-		dict_idTokenDecoded = jwt.decode_complete(
-			token['id_token'],
-			key=signing_key,
-			audience=authServerSettings['oidc_clientID'],
-			algorithms=oidc_tokenSigningAlgos,
-			options={"require":list_requiredIdTokenClaims},
-			)
-	except jwt.MissingRequiredClaimError as e:
-		return f"AppAuthnERROR: id token - {e}"
-	except Exception as e:
-		return f'AppAuthnERROR: id token failed to decode - {e}' 
-
-	return token
-
-def authserverToken_validateAccessToken(token):
-	list_requiredIdTokenClaims = ['iss', 'sub', 'aud',f'https://{flaskAppSettings['app_server_url']}/roles']
-
-	try:
-		signing_key = oidc_jwksClient.get_signing_key_from_jwt(token['id_token'])
-		dict_idTokenDecoded = jwt.decode_complete(
-			token['access_token'],
-			key=signing_key,
-			audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
-			algorithms=oidc_tokenSigningAlgos,
-			options={"require":list_requiredIdTokenClaims},
-			)
-	except jwt.MissingRequiredClaimError as e:
-		return f"AppAuthnERROR: access token - {e}"
-	except Exception as e:
-		return f'AppAuthnERROR: access token failed to decode - {e}' 
-
-	return token
-
-
 def authorization_check(permittedRoles=[], permittedAttributes=[]):
 	def decorator(view_func):
 		@wraps(view_func)
@@ -136,6 +97,19 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 
 			## checks for errors in the token
 			authserver_token = session.get('authserver_token')
+			list_requiredIdTokenClaims = [
+				'iss',
+				'sub',
+				'aud',
+				f'https://{flaskAppSettings['app_server_url']}/roles'
+			]
+
+			list_requiredAccessTokenClaims = [
+				'iss',
+				'sub',
+				'aud',
+				f'https://{flaskAppSettings['app_server_url']}/roles'
+			]			
 			authserverToken_check1 = lambda token: {
 				True: token,
 				False: "AppAuthnERROR: access token not present"
@@ -144,11 +118,30 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				True: token,
 				False: "AppAuthnERROR: id token not present"
 			}[('id_token' in token)]
+			authserverToken_check3 = partial(
+				authserverToken_validateIdToken,
+				Placeholder,
+				list_requiredIdTokenClaims,
+				oidc_jwksClient, 
+				authServerSettings['oidc_clientID'], 
+				oidc_tokenSigningAlgos
+			)
 
-			checklist_authzFunctions = [authserverToken_check1,
-			authserverToken_check2,
-			authserverToken_validateIdToken,
-			authserverToken_validateAccessToken]
+			authserverToken_check4 = partial(
+				authserverToken_validateAccessToken,
+				Placeholder,
+				list_requiredAccessTokenClaims,
+				oidc_jwksClient, 
+				f"{authServerSettings['oidc_authserver']}/api/v2/", 
+				oidc_tokenSigningAlgos
+			)
+
+			checklist_authzFunctions = [
+				authserverToken_check1,
+				authserverToken_check2,
+				authserverToken_check3,
+				authserverToken_check4,
+			]
 
 			checks = reduce(lambda acc, func: {
 			True: func(acc),
@@ -156,17 +149,6 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 			}[('AppAuthnERROR:' not in acc)], checklist_authzFunctions, authserver_token)
 
 			if ('AppAuthnERROR' in checks):              
-				# url_redirectAfterAuth = request.full_path
-				# loginURI, state = oidcServer_client.create_authorization_url(
-				# 	url=oidcserver_metadata['authorization_endpoint'],
-				# 	redirect_uri=url_for('oidc_server_callback', _external=True),
-				# 	response_type='code',
-				# 	scope='openid profile offline_access read:users read:roles',
-				# 	state=jwt_generateRedirectState(url_redirectAfterAuth),
-				# 	audience='https://dev-ei6babp7krz2qnk3.au.auth0.com/api/v2/',
-				# )
-				# session['oidc_state'] = state
-				# return redirect(loginURI)
 				loginURI, state = URIandState_request_authserverLoginURL(
 					clientSession=oidcServer_client,
 					dict_idProviderMetaData=oidcserver_metadata,
@@ -182,7 +164,18 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 
 			## checks if user is authorized to access this area
 			## not written yet
+			userRoles = checks['idTokenDecoded']['payload'][f'https://{flaskAppSettings['app_server_url']}/roles']
 
+			## if no permittedRoles are assigned, then any user role is accepted
+			acceptedRoles = permittedRoles + userRoles * (len(permittedRoles) == 0)
+
+			authorizedUserRoles = set(acceptedRoles) & set(userRoles)
+
+			if (not authorizedUserRoles):			
+				return render_template(
+						'forbidden.html',
+						errorMessage='You do not have the correct roles to access this page'
+					), 403
 			## every check has passed, so return the requested page
 			return view_func(*args, **kwargs)
 		return wrapper
@@ -387,3 +380,24 @@ def user_details():
 			responseMessage=userMeta.content
 			)
 
+@app.route('/pharmacist-page')
+@authorization_check(permittedRoles=['Pharmacist'])
+def pharmacistPage():
+	# getUserURL=f"{env['oidc_authserver']}/api/v2/users/{fillThisWithAccessTokenSub}"
+	# z=requests.get(getUserURL,headers={'authorization':f"Bearer {access_token}"})
+
+	return render_template(
+			"response.html",
+			responseMessage="You have opened the pharmacist page"
+			)
+
+@app.route('/doctor-page')
+@authorization_check(permittedRoles=['Doctor'])
+def doctorPage():
+	# getUserURL=f"{env['oidc_authserver']}/api/v2/users/{fillThisWithAccessTokenSub}"
+	# z=requests.get(getUserURL,headers={'authorization':f"Bearer {access_token}"})
+
+	return render_template(
+			"response.html",
+			responseMessage="You have opened the doctor page"
+			)
