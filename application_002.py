@@ -88,9 +88,9 @@ def authserverToken_validateIdToken(token):
 			options={"require":list_requiredIdTokenClaims},
 			)
 	except jwt.MissingRequiredClaimError as e:
-		return f"AppAuthzERROR: id token - {e}"
+		return f"AppAuthnERROR: id token - {e}"
 	except Exception as e:
-		return f'AppAuthzERROR: id token failed to decode - {e}' 
+		return f'AppAuthnERROR: id token failed to decode - {e}' 
 
 	return token
 
@@ -107,9 +107,9 @@ def authserverToken_validateAccessToken(token):
 			options={"require":list_requiredIdTokenClaims},
 			)
 	except jwt.MissingRequiredClaimError as e:
-		return f"AppAuthzERROR: access token - {e}"
+		return f"AppAuthnERROR: access token - {e}"
 	except Exception as e:
-		return f'AppAuthzERROR: access token failed to decode - {e}' 
+		return f'AppAuthnERROR: access token failed to decode - {e}' 
 
 	return token
 
@@ -118,16 +118,31 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 	def decorator(view_func):
 		@wraps(view_func)
 		def wrapper(*args, **kwargs):
-			checklist_authenticatedUser = ['authserver_token' in session.keys()]
-			authserver_token = session.get('authserver_token', 'AppAuthzERROR: authserver token not present')
+			
+			## if not present, user is not logged in
+			if 'authserver_token' not in session:
+				loginURI, state = URIandState_request_authserverLoginURL(
+					clientSession=oidcServer_client,
+					dict_idProviderMetaData=oidcserver_metadata,
+					url_audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
+					url_callbackAfterLogin=url_for('oidc_server_callback', _external=True),
+					url_destinationAfterAuth=request.full_path,
+				)	
+				session['oidc_state'] = state
+				response = make_response(redirect(loginURI))
+				response.headers['X-Error-Message'] = 'AppAuthnMissing: authserver token missing from session'
+				response.headers['X-Error-Title'] = 'App Authentication Token Missing'
+				return response
 
+			## checks for errors in the token
+			authserver_token = session.get('authserver_token')
 			authserverToken_check1 = lambda token: {
 				True: token,
-				False: "AppAuthzERROR: access token not present"
+				False: "AppAuthnERROR: access token not present"
 			}[('access_token' in token)]
 			authserverToken_check2 = lambda token: {
 				True: token,
-				False: "AppAuthzERROR: id token not present"
+				False: "AppAuthnERROR: id token not present"
 			}[('id_token' in token)]
 
 			checklist_authzFunctions = [authserverToken_check1,
@@ -138,40 +153,9 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 			checks = reduce(lambda acc, func: {
 			True: func(acc),
 			False: acc,
-			}[('AppAuthzERROR:' not in acc)], checklist_authzFunctions, authserver_token)
+			}[('AppAuthnERROR:' not in acc)], checklist_authzFunctions, authserver_token)
 
-			# token.get('id_token', 'AppAuthzERROR: id token not present')
-			 
-
-			# signing_key = oidc_jwksClient.get_signing_key_from_jwt(id_token)
-			# try:
-			# 	signing_key = oidc_jwksClient.get_signing_key_from_jwt(id_token)
-			# 	validation = jwt.decode_complete(
-			# 		id_token,
-			# 		key=signing_key,
-			# 		audience=authServerSettings['oidc_clientID'],
-			# 		algorithms=oidc_tokenSigningAlgos
-			# 		)
-			# except Exception as e:
-			# 	return render_template(
-			# 		"auth-error.html",
-			# 		errorMessage=f"id_token validation error: {e}" 
-			# 		)
-
-			# try:
-			# 	signing_key = accessToken_jwksClient.get_signing_key_from_jwt(access_token)
-			# 	dict_accessTokenDecoded = jwt.decode_complete(
-			# 		access_token,
-			# 		key=signing_key,
-			# 		audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
-			# 		algorithms=['RS256']#oidc_tokenSigningAlgos
-			# 		)
-			# except Exception as e:
-			# 	return render_template(
-			# 		"auth-error.html",
-			# 		errorMessage=f"access_token validation error: {e}" 
-			# 		)
-			if ('AppAuthzERROR' in checks):              
+			if ('AppAuthnERROR' in checks):              
 				# url_redirectAfterAuth = request.full_path
 				# loginURI, state = oidcServer_client.create_authorization_url(
 				# 	url=oidcserver_metadata['authorization_endpoint'],
@@ -193,8 +177,13 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				session['oidc_state'] = state
 				response = make_response(redirect(loginURI))
 				response.headers['X-Error-Message'] = checks
-				response.headers['X-Error-Title'] = 'App Authorization Error'
+				response.headers['X-Error-Title'] = 'App Authentication Token Error'
 				return response
+
+			## checks if user is authorized to access this area
+			## not written yet
+
+			## every check has passed, so return the requested page
 			return view_func(*args, **kwargs)
 		return wrapper
 	return decorator

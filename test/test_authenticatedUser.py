@@ -153,7 +153,7 @@ def test_accessAuthzPageWithAuthn():
 tokensToTest = [
 	{
 		'test_token': {'nauthserver_token': 'someNonsense'},
-		'expected_error_message': 'AppAuthzERROR: authserver token not present'
+		'expected_error_message': 'AppAuthnMissing: authserver token missing from session'
 	},
 	{
 		'test_token': {
@@ -161,7 +161,7 @@ tokensToTest = [
 				'id_token':'whisky',
 				}
 			},
-		'expected_error_message': 'AppAuthzERROR: access token not present'
+		'expected_error_message': 'AppAuthnERROR: access token not present'
 	},
 	{
 		'test_token': {
@@ -169,7 +169,7 @@ tokensToTest = [
 				'access_token':'whisky',
 				}
 			},
-		'expected_error_message': 'AppAuthzERROR: id token not present'
+		'expected_error_message': 'AppAuthnERROR: id token not present'
 	},
 	{
 		'test_token': {
@@ -178,7 +178,7 @@ tokensToTest = [
 				'id_token':'malt',
 				}
 			},
-		'expected_error_message': 'AppAuthzERROR: id token failed to decode'
+		'expected_error_message': 'AppAuthnERROR: id token failed to decode'
 	},
 ]
 @pytest.mark.order(7)
