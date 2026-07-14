@@ -163,7 +163,6 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				return response
 
 			## checks if user is authorized to access this area
-			## not written yet
 			userRoles = checks['idTokenDecoded']['payload'][f'https://{flaskAppSettings['app_server_url']}/roles']
 
 			## if no permittedRoles are assigned, then any user role is accepted
