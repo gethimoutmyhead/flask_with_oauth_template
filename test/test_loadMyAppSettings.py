@@ -1,6 +1,6 @@
 from loadMyAppSettings import flaskAppSettings, authServerSettings
 from itertools import compress, repeat
-
+import json
 
 def checkEnvVariable(varName):
 	assert len(env[varName]) > 0, f"env variable {varName} length <= 0" 
@@ -29,14 +29,14 @@ def is_configItemsValid(keysToCheck, dictToCheck):
 		'checklist_nonzeroStrings': checklist_strlengthNonzero,
 	}
 def test_flaskAppSettings_exist():
-	keysNeeded = ['app_cookieSigning_secret', 'app_server_url']
+	keysNeeded = ['app_cookieSigning_secret', 'app_server_url', 'app_defaultPageMeta_jsonfile']
 
 	# checklist_keysPresent = [*map(lambda key: key in flaskAppSettings.keys(), keysNeeded)]
 
 	configItemsValidity = is_configItemsValid(keysNeeded, flaskAppSettings)
-	assert not (False in configItemsValidity['checklist_keysPresent']), f"flaskAppSettings required keys missing, found {flaskAppSettings.keys()}"
+	assert not (False in configItemsValidity['checklist_keysPresent']), f"flaskAppSettings required keys {list(set(keysNeeded) - set(flaskAppSettings.keys()))} missing, found {flaskAppSettings.keys()}"
 	assert not (False in configItemsValidity['checklist_keysAreStrings']), f"flaskAppSettings keys are not strings, found {[*map(lambda val: type(val), flaskAppSettings.values())]}"
-	assert not (False in configItemsValidity['checklist_nonzeroStrings']), f"flaskAppSettings key values missing data, found {flaskAppSettings.values()}"
+	assert not (False in configItemsValidity['checklist_nonzeroStrings']), f"flaskAppSettings key values missing data, found {flaskAppSettings.keys()}"
 
 	# list(map(is_envVariable_NotEmptyString, variablesNeeded))
 
@@ -48,3 +48,10 @@ def test_env_oidcVariables_exist():
 	assert not (False in configItemsValidity['checklist_keysPresent']), f"authServerSettings required keys missing,found {authServerSettings.keys()} "
 	assert not (False in configItemsValidity['checklist_keysAreStrings']), f"authServerSettings keys are not strings, found {[*map(lambda val: type(val), authServerSettings.values())]}"
 	assert not (False in configItemsValidity['checklist_nonzeroStrings']), f"authServerSettings key values missing data, found {authServerSettings.values()}"
+
+def test_defaultPageMeta_loads():
+	fileToLoad=flaskAppSettings['app_defaultPageMeta_jsonfile']
+	with open(fileToLoad, "r", encoding='utf-8') as file:
+		list_defaultPageMeta = json.load(file)
+
+	assert isinstance(dict_defaultPageMeta, list), f"file loaded is not a dict, its a {type(dict_defaultPageMeta)}"
