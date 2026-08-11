@@ -12,11 +12,16 @@ from loadMyAppSettings import flaskAppSettings, authServerSettings
 from itertools import repeat, chain
 from functools import wraps, reduce, partial, Placeholder
 from functions_tokenValidation import authserverToken_validateIdToken, authserverToken_validateAccessToken
-app = Flask(__name__)
 
+
+fileToLoad=flaskAppSettings['app_defaultPageMeta_jsonfile']
+with open(fileToLoad, "r", encoding='utf-8') as file:
+	listOfDicts_defaultPageMeta = json.load(file)
+
+app = Flask(__name__)
 app.config['SECRET_KEY'] = flaskAppSettings["app_cookieSigning_secret"]
 app.config['SERVER_NAME'] = flaskAppSettings["app_server_url"]
-
+app.config['DEFAULTPAGEMETA'] = listOfDicts_defaultPageMeta
 url_for_oidcserver_metadataURL = f"{authServerSettings['oidc_authserver']}/.well-known/openid-configuration"
 
 request_oidcserver_metadata = fetch_url.get(url_for_oidcserver_metadataURL)

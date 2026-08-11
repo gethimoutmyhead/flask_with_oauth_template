@@ -1,9 +1,11 @@
 <!doctype html>
 <html>
 	<head>
-		<meta name="application-name" content="FlaskAppWithOAuth_Template" lang="en">
-		<meta name="application-name" content="Cannculator version 0.2" lang="en">
-		<meta name="creator" content="SBM Company" lang="en">
+		{% block defaultMeta %}
+			{% for metaTag in config.DEFAULTPAGEMETA -%}
+				<meta{% for key, value in metaTag.items() %} {{ key }}="{{ value }}"{% endfor %}>
+			{% endfor -%}
+		{% endblock %}
 		<meta name="robots" content="nofollow, noindex" >
 		{% block addMetaTags %}{% endblock %}
 		<title>{% block title %}{% endblock %}</title> 

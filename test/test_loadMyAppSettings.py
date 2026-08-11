@@ -54,4 +54,4 @@ def test_defaultPageMeta_loads():
 	with open(fileToLoad, "r", encoding='utf-8') as file:
 		list_defaultPageMeta = json.load(file)
 
-	assert isinstance(dict_defaultPageMeta, list), f"file loaded is not a dict, its a {type(dict_defaultPageMeta)}"
+	assert isinstance(list_defaultPageMeta, list), f"file loaded is not a dict, its a {type(list_defaultPageMeta)}"

@@ -5,6 +5,10 @@ template set up to allow me to make a flask app that has authentication built in
 Main branch auth0-oidc is set up to work as an auth0 client
 
 ## Completed
+2026-08-11
+* global variable to set meta tag 'application-name' in templates
+* tests for meta Tags
+
 2026-07-14
 * authorization tests that checks permittedRoles works correctly
 * authorization code to verify permittedRoles
@@ -34,8 +38,8 @@ Main branch auth0-oidc is set up to work as an auth0 client
 ### Functions
 * authorization code that checks permittedAttributes
 * template functions that allow user metadata, app metadata modifications
-* global variable to set meta tag 'application-name' in templates
 * push form that allows user creation
+* user creation based on roles
 * script that creates new, or updates existing .env files (makes it easier to deploy anywhere)
 * script to configure gunicorn.conf.py
 
