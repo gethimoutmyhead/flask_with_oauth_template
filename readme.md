@@ -4,7 +4,37 @@ template set up to allow me to make a flask app that has authentication built in
 
 Main branch auth0-oidc is set up to work as an auth0 client
 
+## Things to do
+### tests
+* more extensive permittedRoles to check a 2nd user with a different role
+* permittedAttributes function testing
+* test that logout flow works correctly
+* tests to monitor behavior of access token, id token tests that are present but tampered
+* tests to monitor behavior of access token, id token tests that are present but have claims missing
+* tests to monitor behavior of access token, id token tests that are present but expired
+
+
+### Functions
+* change authenticated_user tests to use the Authorization Code PKCE grant, instead of the ROPC (resource owner password credentials) - this will allow proper MFA testing as well
+* push form that allows user creation
+* user creation based on roles
+* template functions for client to edit user metadata, app metadata
+* script that creates new, or updates existing .env files (makes it easier to deploy anywhere)
+* script to configure gunicorn.conf.py
+* authorization check that checks permittedAttributes
+
+### refactoring
+* the authorization_check has an if for logged out / authenticated / authorized; should be able to refactor these
+* get rid of the authenticated_user tests that use ROPC
+
+
 ## Completed
+2026-08-18
+* refactored location of .env files to sit in root folder, rather than everywhere. should facilitate writing script for writing and updating .env files
+* split tests up into unit and integration tests; latter when we directly test server responses
+* basic code to facilitate Proof-Key for Code Exchange (PKCE) grants, tested elsewhere
+* modified readme to display the to-do list first. edited and re-ordered to-do list
+
 2026-08-11
 * global variable to set meta tag 'application-name' in templates
 * tests for meta Tags
@@ -24,24 +54,3 @@ Main branch auth0-oidc is set up to work as an auth0 client
 * set up tests to see that auth0 roles are being included in access token
 * set up tests to see that auth0 roles are being included in id token
 * add access token validation to flask App (can lift this from the test function)
-
-## Things to do
-### tests
-* permittedAttributes function testing
-* more extensive permittedRoles to check a 2nd user with a different role
-* test that logout flow works correctly
-* tests to monitor behavior of access token, id token tests that are present but tampered
-* tests to monitor behavior of access token, id token tests that are present but have claims missing
-* tests to monitor behavior of access token, id token tests that are present but expired
-
-
-### Functions
-* authorization code that checks permittedAttributes
-* template functions that allow user metadata, app metadata modifications
-* push form that allows user creation
-* user creation based on roles
-* script that creates new, or updates existing .env files (makes it easier to deploy anywhere)
-* script to configure gunicorn.conf.py
-
-### refactoring
-* the authorization_check has an if for logged out / authenticated / authorized; should be able to refactor these

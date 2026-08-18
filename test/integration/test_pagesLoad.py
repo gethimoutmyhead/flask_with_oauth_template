@@ -1,5 +1,5 @@
 import requests
-from loadMyAppSettings import env as env
+from loadMyAppSettings import flaskAppSettings, authServerSettings
 import importlib
 import pytest
 from bs4 import BeautifulSoup
@@ -17,7 +17,7 @@ URLsToCheck.append({"pageName": 'logged_out', "expectedResponse": 200})
 
 @pytest.mark.parametrize("testConditions", URLsToCheck)
 def test_expectedURLResponse(testConditions):
-	str_baseURL = env.get('app_server_url','not set')
+	str_baseURL = flaskAppSettings.get('app_server_url','not set')
 	try:
 		str_url = f"https://{str_baseURL}/{testConditions['pageName']}"
 	except:
@@ -28,7 +28,7 @@ def test_expectedURLResponse(testConditions):
 	str_contentType = testConditions.get('content-type', 'text/html')
 
 	try:
-		page = requests.get(str_url, verify=env['publicCert_site'], allow_redirects=bool_redirectIsOK)
+		page = requests.get(str_url, verify=flaskAppSettings['publicCert_site'], allow_redirects=bool_redirectIsOK)
 	except requests.exceptions.Timeout:
 		pytest.fail(f"{str_url} - The request timed out")
 	except requests.exceptions.ConnectionError as e:
@@ -48,9 +48,9 @@ def test_expectedURLResponse(testConditions):
 	
 
 def test_basePageLoads():
-	url = f"https://{env['app_server_url']}"
+	url = f"https://{flaskAppSettings['app_server_url']}"
 	try:
-		page = requests.get(url, verify=env['publicCert_site'])
+		page = requests.get(url, verify=flaskAppSettings['publicCert_site'])
 		assert page.status_code == 200, f"{url} returned status code {page.status_code}"
 	except requests.exceptions.Timeout:
 		pytest.fail(f"{url} - The request timed out")
@@ -59,8 +59,8 @@ def test_basePageLoads():
 
 def test_loginPageRedirects():
 	try:
-		url = f"https://{env['app_server_url']}/login"
-		page = requests.get(url, verify=env['publicCert_site'], allow_redirects=False)
+		url = f"https://{flaskAppSettings['app_server_url']}/login"
+		page = requests.get(url, verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
 		assert page.status_code == 302, f"login page returns status code {page.status_code}"
 	except requests.exceptions.Timeout:
 		pytest.fail(f"{url} - The request timed out")
@@ -69,9 +69,9 @@ def test_loginPageRedirects():
 
 
 def test_oidcCallbackPage_error_caught():
-	url = f"https://{env['app_server_url']}/after-authentication?error=access_denied"
+	url = f"https://{flaskAppSettings['app_server_url']}/after-authentication?error=access_denied"
 	try:
-		page = requests.get(url, verify=env['publicCert_site'], allow_redirects=False)
+		page = requests.get(url, verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
 		checkList = [
 			(page.status_code == 302),
 			"AuthServer error parameter" in page.headers.get('X-Error-Message'),
@@ -92,9 +92,9 @@ def test_oidcCallbackPage_error_caught():
 	# assert "ஓட்டப் பிழை" in metaTag_description_ta[0].get('content'), f"{url} - no error, description - {metaTag_description_ta[0].get('content')} "
 
 def test_oidcCallbackPage_ArgumentMissing():
-	url = f"https://{env['app_server_url']}/after-authentication?code=roofus"
+	url = f"https://{flaskAppSettings['app_server_url']}/after-authentication?code=roofus"
 	try:
-		page = requests.get(url, verify=env['publicCert_site'], allow_redirects=False)
+		page = requests.get(url, verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
 		checkList = [
 			page.status_code == 302,
 			"Response missing arguments" in page.headers.get('X-Error-Message'),
@@ -108,9 +108,9 @@ def test_oidcCallbackPage_ArgumentMissing():
 		pytest.fail(e)
 
 
-	url = f"https://{env['app_server_url']}/after-authentication?state=doofus"
+	url = f"https://{flaskAppSettings['app_server_url']}/after-authentication?state=doofus"
 	try:
-		page = requests.get(url, verify=env['publicCert_site'], allow_redirects=False)
+		page = requests.get(url, verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
 		checkList = [
 			page.status_code == 302,
 			"Response missing arguments" in page.headers.get('X-Error-Message'),

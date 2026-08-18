@@ -8,5 +8,6 @@ filePath_oidcSettings = flaskAppSettings['authserver_configEnv']
 authServerSettings = dotenv_values(filePath_oidcSettings)
 
 
-
+filePath_pyClient_OAuthSettings = 'pyapp_auth0-oidc.env'
+pyApp_auth0Settings = dotenv_values(filePath_pyClient_OAuthSettings)
 

@@ -1,4 +1,4 @@
-from loadMyAppSettings import flaskAppSettings, authServerSettings
+from loadMyAppSettings import flaskAppSettings, authServerSettings, pyApp_auth0Settings
 from itertools import compress, repeat
 import json
 
@@ -48,6 +48,15 @@ def test_env_oidcVariables_exist():
 	assert not (False in configItemsValidity['checklist_keysPresent']), f"authServerSettings required keys missing,found {authServerSettings.keys()} "
 	assert not (False in configItemsValidity['checklist_keysAreStrings']), f"authServerSettings keys are not strings, found {[*map(lambda val: type(val), authServerSettings.values())]}"
 	assert not (False in configItemsValidity['checklist_nonzeroStrings']), f"authServerSettings key values missing data, found {authServerSettings.values()}"
+
+def test_env_pyApp_OAuthSettings_exist():
+	keysNeeded = [ 'oidc_clientID', 'callbackServer_port', 'oidc_authserver']
+	# list(map(is_envVariable_NotEmptyString, variablesNeeded))
+
+	configItemsValidity = is_configItemsValid(keysNeeded, pyApp_auth0Settings)
+	assert not (False in configItemsValidity['checklist_keysPresent']), f"pyApp_auth0Settings required keys missing,found {authServerSettings.keys()} "
+	assert not (False in configItemsValidity['checklist_keysAreStrings']), f"pyApp_auth0Settings keys are not strings, found {[*map(lambda val: type(val), authServerSettings.values())]}"
+	assert not (False in configItemsValidity['checklist_nonzeroStrings']), f"pyApp_auth0Settings key values missing data, found {authServerSettings.values()}"
 
 def test_defaultPageMeta_loads():
 	fileToLoad=flaskAppSettings['app_defaultPageMeta_jsonfile']
