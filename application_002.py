@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 from urllib.parse import urlencode
 
 import random, string
-from loadMyAppSettings import flaskAppSettings, authServerSettings
+from loadMyAppSettings import flaskAppSettings, authServerSettings, pyApp_auth0Settings
 from itertools import repeat, chain
 from functools import wraps, reduce, partial, Placeholder
 from functions_tokenValidation import authserverToken_validateIdToken, authserverToken_validateAccessToken
@@ -128,7 +128,7 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				Placeholder,
 				list_requiredIdTokenClaims,
 				oidc_jwksClient, 
-				authServerSettings['oidc_clientID'], 
+				[authServerSettings['oidc_clientID'], pyApp_auth0Settings['oidc_clientID']], 
 				oidc_tokenSigningAlgos
 			)
 

@@ -14,6 +14,7 @@ import hashlib
 import secrets
 import urllib.parse
 import webbrowser
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import requests
@@ -96,6 +97,7 @@ def get_tokens_pkce(
     server.timeout = timeout
 
     webbrowser.open(auth_url)
+    # os.system(f"chrome -incognito {auth_url}")
     print(f"If the browser didn't open, visit:\n{auth_url}\n")
 
     server.handle_request()  # blocks until one request (the callback) arrives

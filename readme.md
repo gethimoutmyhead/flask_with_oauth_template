@@ -15,7 +15,6 @@ Main branch auth0-oidc is set up to work as an auth0 client
 
 
 ### Functions
-* change authenticated_user tests to use the Authorization Code PKCE grant, instead of the ROPC (resource owner password credentials) - this will allow proper MFA testing as well
 * push form that allows user creation
 * user creation based on roles
 * template functions for client to edit user metadata, app metadata
@@ -24,11 +23,15 @@ Main branch auth0-oidc is set up to work as an auth0 client
 * authorization check that checks permittedAttributes
 
 ### refactoring
+* rename wsgi_002 and application_002
 * the authorization_check has an if for logged out / authenticated / authorized; should be able to refactor these
 * get rid of the authenticated_user tests that use ROPC
 
 
 ## Completed
+2026-08-19
+* completed OAuth by PKCE grant as a test option - now can do testing with MFA
+
 2026-08-18
 * refactored location of .env files to sit in root folder, rather than everywhere. should facilitate writing script for writing and updating .env files
 * split tests up into unit and integration tests; latter when we directly test server responses
