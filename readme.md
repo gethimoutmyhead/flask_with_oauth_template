@@ -4,6 +4,24 @@ template set up to allow me to make a flask app that has authentication built in
 
 Main branch auth0-oidc is set up to work as an auth0 client
 
+
+## How to use
+
+
+launch with
+```
+pipenv shell
+gunicorn wsgi:app
+```
+
+
+test with
+```
+pytest
+```
+
+config files - todo
+
 ## Things to do
 ### tests
 * more extensive permittedRoles to check a 2nd user with a different role
@@ -23,12 +41,15 @@ Main branch auth0-oidc is set up to work as an auth0 client
 * authorization check that checks permittedAttributes
 
 ### refactoring
-* rename wsgi_002 and application_002
 * the authorization_check has an if for logged out / authenticated / authorized; should be able to refactor these
 * get rid of the authenticated_user tests that use ROPC
 
 
 ## Completed
+2026-08-22
+* rename wsgi_002 and application_002
+* added how-to-use in readme.md
+
 2026-08-19
 * completed OAuth by PKCE grant as a test option - now can do testing with MFA
 
