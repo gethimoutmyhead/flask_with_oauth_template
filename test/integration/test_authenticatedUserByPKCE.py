@@ -9,6 +9,7 @@ from itertools import repeat
 from functools import reduce
 import jwt
 from functions_pyapp_loginByPKCE import get_tokens_pkce
+from bs4 import BeautifulSoup
 
 # def test_testUser_credentials_present():
 # assert len(user_credentials.keys()) > 5, 'FAIL: no user credentials'
@@ -233,3 +234,11 @@ def test_accessAuthzPageWithWrongRole():
 def test_accessAuthzPageWithCorrectRole():
 	page = doctorSession.get(f"https://{flaskAppSettings['app_server_url']}/doctor-page",verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
 	assert page.status_code == 200, f"expected page to load, got {page.status_code}\n {page.headers}"
+
+# @pytest.mark.order(10)
+# def test_logoutOfSite():
+# 	page = doctorSession.get(f"https://{flaskAppSettings['app_server_url']}/logout", verify=False, allow_redirects=True)
+# 	bs = BeautifulSoup(page.text, 'html.parser')
+# 	title = bs.find('title').text
+
+# 	assert title == ' Logout flow completed ', f"logout page title incorrect, got {page.content}"

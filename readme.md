@@ -9,6 +9,7 @@ Main branch auth0-oidc is set up to work as an auth0 client
 
 
 launch with
+
 ```
 pipenv shell
 gunicorn wsgi:app
@@ -16,6 +17,7 @@ gunicorn wsgi:app
 
 
 test with
+
 ```
 pytest
 ```
@@ -46,6 +48,9 @@ config files - todo
 
 
 ## Completed
+2026-08-23
+* new testing method using playwright
+
 2026-08-22
 * rename wsgi_002 and application_002
 * added how-to-use in readme.md

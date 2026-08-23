@@ -21,6 +21,7 @@ with open(fileToLoad, "r", encoding='utf-8') as file:
 app = Flask(__name__)
 app.config['SECRET_KEY'] = flaskAppSettings["app_cookieSigning_secret"]
 app.config['SERVER_NAME'] = flaskAppSettings["app_server_url"]
+app.config['SESSION_COOKIE_SECURE'] = True
 app.config['DEFAULTPAGEMETA'] = listOfDicts_defaultPageMeta
 url_for_oidcserver_metadataURL = f"{authServerSettings['oidc_authserver']}/.well-known/openid-configuration"
 
