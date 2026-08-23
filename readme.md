@@ -26,13 +26,12 @@ config files - todo
 
 ## Things to do
 ### tests
-* more extensive permittedRoles to check a 2nd user with a different role
-* permittedAttributes function testing
+* break-up ROPC test into invalid session cookie test, and a deprecated authenticateByROPCTest function
+* more extensive permittedRoles check for a 2nd user with a different role
 * test that logout flow works correctly
 * tests to monitor behavior of access token, id token tests that are present but tampered
 * tests to monitor behavior of access token, id token tests that are present but have claims missing
 * tests to monitor behavior of access token, id token tests that are present but expired
-
 
 ### Functions
 * push form that allows user creation
@@ -46,10 +45,15 @@ config files - todo
 * the authorization_check has an if for logged out / authenticated / authorized; should be able to refactor these
 * get rid of the authenticated_user tests that use ROPC
 
+### Research
+* permittedAttributes function testing - need more homework on how I would implement
 
 ## Completed
 2026-08-23
-* new testing method using playwright
+* new testing method using playwright - user logs in manually, allows MFA and other stuff, introspection when errors happen
+* deprecated the oauth by pkce grant; may need in future, but can do without this right now.
+* completed authenticateUserWithRoleDoctor test function
+* added a login hint parameter to the login page, which should auto-fill username. helpful for my test functions
 
 2026-08-22
 * rename wsgi_002 and application_002

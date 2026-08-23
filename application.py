@@ -45,14 +45,15 @@ def check_loggedIn(func):
 		return func(*args)
 	return checkLog
 
-def URIandState_request_authserverLoginURL(clientSession, dict_idProviderMetaData, url_audience, url_callbackAfterLogin, url_destinationAfterAuth):
+def URIandState_request_authserverLoginURL(clientSession, dict_idProviderMetaData, url_audience, url_callbackAfterLogin, url_destinationAfterAuth, login_hint=''):
 	loginURI, state = clientSession.create_authorization_url(
 		url=dict_idProviderMetaData['authorization_endpoint'],
 		redirect_uri=url_callbackAfterLogin,
 		response_type='code',
 		scope='openid profile read:current_user',
 		state=jwt_generateRedirectState(url_destinationAfterAuth),
-		audience=url_audience
+		audience=url_audience,
+		login_hint=login_hint
 	)
 	return loginURI, state
 def jwt_generateRedirectState(str_urlToRedirect):
@@ -201,12 +202,14 @@ def login():
 	# 	state=jwt_generateRedirectState(url_for('logged_in', _external=True)),
 	# 	audience='https://dev-ei6babp7krz2qnk3.au.auth0.com/api/v2/',
 	# )
+	login_hint = request.args.get('login_hint', '')
 	loginURI, state = URIandState_request_authserverLoginURL(
 			clientSession=oidcServer_client,
 			dict_idProviderMetaData=oidcserver_metadata,
 			url_audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
 			url_callbackAfterLogin=url_for('oidc_server_callback', _external=True),
 			url_destinationAfterAuth=url_for('logged_in', _external=True),
+			login_hint=login_hint
 		)	
 	session['oidc_state'] = state
 	return redirect(loginURI)
