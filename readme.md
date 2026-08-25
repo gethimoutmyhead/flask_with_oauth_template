@@ -26,8 +26,6 @@ config files - todo
 
 ## Things to do
 ### tests
-* break-up ROPC test into invalid session cookie test, and a deprecated authenticateByROPCTest function
-* more extensive permittedRoles check for a 2nd user with a different role
 * test that logout flow works correctly
 * tests to monitor behavior of access token, id token tests that are present but tampered
 * tests to monitor behavior of access token, id token tests that are present but have claims missing
@@ -43,12 +41,18 @@ config files - todo
 
 ### refactoring
 * the authorization_check has an if for logged out / authenticated / authorized; should be able to refactor these
-* get rid of the authenticated_user tests that use ROPC
+
 
 ### Research
 * permittedAttributes function testing - need more homework on how I would implement
 
 ## Completed
+2026-08-25
+* break-up ROPC test into invalid session cookie test, and a deprecated authenticateByROPCTest function
+* permittedRoles test with a 2nd user in a different role
+* permittedRoles test where multiple roles can be accepted
+* re-engineered tests to use playwright_async api, to allow multiple concurrent tests without breaking code
+
 2026-08-23
 * new testing method using playwright - user logs in manually, allows MFA and other stuff, introspection when errors happen
 * deprecated the oauth by pkce grant; may need in future, but can do without this right now.

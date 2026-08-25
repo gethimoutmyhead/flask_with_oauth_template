@@ -409,3 +409,14 @@ def doctorPage():
 			"response.html",
 			responseMessage="You have opened the doctor page"
 			)
+
+@app.route('/allied-health-page')
+@authorization_check(permittedRoles=['Doctor', 'Pharmacist'])
+def alliedHealthPage():
+	# getUserURL=f"{env['oidc_authserver']}/api/v2/users/{fillThisWithAccessTokenSub}"
+	# z=requests.get(getUserURL,headers={'authorization':f"Bearer {access_token}"})
+
+	return render_template(
+			"response.html",
+			responseMessage="You have opened the Allied Health page"
+			)

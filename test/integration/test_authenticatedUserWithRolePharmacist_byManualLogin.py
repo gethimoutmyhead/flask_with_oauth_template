@@ -16,7 +16,7 @@ async def getLoggedInState():
 	async with async_playwright() as pw:
 		browser = await pw.firefox.launch(headless=False)
 		page = await browser.new_page()
-		await page.goto(f"https://{flaskAppSettings['app_server_url']}/login?login_hint=lazysummers@duck.com")
+		await page.goto(f"https://{flaskAppSettings['app_server_url']}/login?login_hint=uneven-kennel-quit@duck.com")
 		breakpoint()
 		# input('login then press enter')
 		loggedState = await page.context.storage_state()
@@ -92,7 +92,8 @@ async def test_accessAuthzPageWithAuthn(browser: Browser, getLoggedInState):
 	page = await g.new_page()
 	targetURL = f"https://{flaskAppSettings['app_server_url']}/authenticated"
 	response = await page.goto(targetURL)
-	assert response.status == 200,f"{response}"
+	pageData = await response.text()
+	assert response.status == 200,f"expected status 200, received {response} \n {pageData}"
 
 	await g.close()
 
@@ -101,8 +102,7 @@ async def test_accessAuthzPageWithAuthn(browser: Browser, getLoggedInState):
 async def test_accessAuthzPageWithWrongRole(browser: Browser, getLoggedInState):
 	g = await browser.new_context(storage_state=getLoggedInState)
 	page = await g.new_page()
-	targetURL = f"https://{flaskAppSettings['app_server_url']}/pharmacist-page"
-
+	targetURL = f"https://{flaskAppSettings['app_server_url']}/doctor-page"
 	response = await page.goto(targetURL)
 	pageData = await response.text()
 	assert response.status == 403,f"expected status 403, received {response} \n {pageData}"
@@ -114,8 +114,8 @@ async def test_accessAuthzPageWithWrongRole(browser: Browser, getLoggedInState):
 async def test_accessAuthzPageWithCorrectRole(browser: Browser, getLoggedInState):
 	g = await browser.new_context(storage_state=getLoggedInState)
 	page = await g.new_page()
-	targetURL = f"https://{flaskAppSettings['app_server_url']}/doctor-page"
 
+	targetURL = f"https://{flaskAppSettings['app_server_url']}/pharmacist-page"
 	response = await page.goto(targetURL)
 	pageData = await response.text()
 	assert response.status == 200,f"expected status 200, received {response} \n {pageData}"

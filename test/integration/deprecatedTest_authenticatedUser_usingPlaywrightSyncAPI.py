@@ -1,5 +1,5 @@
-import pytest, pytest_asyncio
-from playwright.async_api import Page, Browser, async_playwright
+from playwright.sync_api import sync_playwright
+import pytest
 from loadMyAppSettings import flaskAppSettings, authServerSettings, pyApp_auth0Settings
 import flaskCookieMaker
 import requests, jwt
@@ -11,23 +11,25 @@ oidc_jwksClient = jwt.PyJWKClient(oidcserver_metadata["jwks_uri"])
 accessToken_jwksClient = jwt.PyJWKClient(f"{authServerSettings['oidc_authserver']}/.well-known/jwks.json")
 oidc_tokenSigningAlgos = oidcserver_metadata['id_token_signing_alg_values_supported']
 
-@pytest_asyncio.fixture(scope='session')
-async def getLoggedInState():
-	async with async_playwright() as pw:
-		browser = await pw.firefox.launch(headless=False)
-		page = await browser.new_page()
-		await page.goto(f"https://{flaskAppSettings['app_server_url']}/login?login_hint=lazysummers@duck.com")
-		breakpoint()
-		# input('login then press enter')
-		loggedState = await page.context.storage_state()
-		await browser.close()
 
+@pytest.fixture(scope='session')
+def loggedInState():
+	with sync_playwright() as pw:
+		browser = pw.firefox.launch(headless=False)
+		page = browser.new_page()
+		page.goto(f"https://{flaskAppSettings['app_server_url']}/login?login_hint=lazysummers@duck.com")
+		# breakpoint()
+		input('login then press enter')
+		loggedState = page.context.storage_state()
+		browser.close()
 	return loggedState
 
+# @pytest.fixture(scope='session')
+# def loggedInState(page):
 
-@pytest.mark.asyncio(loop_scope="session")
-async def test_validateAppCookies(getLoggedInState):
-	loggedInState = getLoggedInState
+	# return loggedState
+
+def test_validateAppCookies(loggedInState):
 	appCookie_domain = flaskAppSettings['app_server_url'].split(':')[0]
 
 	appCookie = [*filter(lambda cookie: cookie['domain'] == appCookie_domain, loggedInState['cookies'])]
@@ -79,50 +81,43 @@ async def test_validateAppCookies(getLoggedInState):
 		pytest.fail(f'access token failed to decode - {e} \n access token {dict_authServerToken["access_token"]}')
 
 
-@pytest.mark.asyncio(loop_scope='session')
-async def test_loadMainPage(page: Page):
+
+def test_loadAuthzPageWithAuthn(loggedInState, new_context):
+
+	context = new_context(storage_state=loggedInState)
+	page = context.new_page()
+
 	targetURL = f"https://{flaskAppSettings['app_server_url']}/authenticated"
-	response = await page.goto(targetURL)
-	assert response.status == 200,f"{response}"
 
+	response = page.goto(targetURL)
+	# assert 3==5, f"{page.content()}"
+	assert response.status == 200, f"expected status 200, received {response.status}"
 
-@pytest.mark.asyncio(loop_scope='session')
-async def test_accessAuthzPageWithAuthn(browser: Browser, getLoggedInState):
-	g = await browser.new_context(storage_state=getLoggedInState)
-	page = await g.new_page()
-	targetURL = f"https://{flaskAppSettings['app_server_url']}/authenticated"
-	response = await page.goto(targetURL)
-	assert response.status == 200,f"{response}"
+	assert response.url == targetURL, f"expected {targetURL}, received {response.url}"
 
-	await g.close()
+def test_loadAuthzPageWithWrongRole(loggedInState, new_context):
 
+	context = new_context(storage_state=loggedInState)
+	page = context.new_page()
 
-@pytest.mark.asyncio(loop_scope='session')
-async def test_accessAuthzPageWithWrongRole(browser: Browser, getLoggedInState):
-	g = await browser.new_context(storage_state=getLoggedInState)
-	page = await g.new_page()
 	targetURL = f"https://{flaskAppSettings['app_server_url']}/pharmacist-page"
 
-	response = await page.goto(targetURL)
-	pageData = await response.text()
-	assert response.status == 403,f"expected status 403, received {response} \n {pageData}"
+	response = page.goto(targetURL)
+	# assert 3==5, f"{page.content()}"
+	assert response.status == 403, f"expected status 403, received {response.status}"
 
-	await g.close()
+	assert response.url == targetURL, f"expected {targetURL}, received {response.url}"
 
 
-@pytest.mark.asyncio(loop_scope='session')
-async def test_accessAuthzPageWithCorrectRole(browser: Browser, getLoggedInState):
-	g = await browser.new_context(storage_state=getLoggedInState)
-	page = await g.new_page()
+def test_loadAuthzPageWithCorrectRole(loggedInState, new_context):
+
+	context = new_context(storage_state=loggedInState)
+	page = context.new_page()
+
 	targetURL = f"https://{flaskAppSettings['app_server_url']}/doctor-page"
 
-	response = await page.goto(targetURL)
-	pageData = await response.text()
-	assert response.status == 200,f"expected status 200, received {response} \n {pageData}"
+	response = page.goto(targetURL)
+	# assert 3==5, f"{page.content()}"
+	assert response.status == 200, f"expected status 200, received {response.status}"
 
-	targetURL = f"https://{flaskAppSettings['app_server_url']}/allied-health-page"
-	response = await page.goto(targetURL)
-	pageData = await response.text()
-	assert response.status == 200,f"expected status 200, received {response} \n {pageData}"
-
-	await g.close()
+	assert response.url == targetURL, f"expected {targetURL}, received {response.url}"

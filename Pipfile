@@ -15,7 +15,8 @@ pyjwt = {extras = ["crypto"], version = "*"}
 pytest-order = "*"
 gunicorn = "*"
 playwright = "*"
-pytest-playwright = "*"
+pytest-asyncio = "*"
+pytest-playwright-asyncio = "*"
 
 [dev-packages]
 
