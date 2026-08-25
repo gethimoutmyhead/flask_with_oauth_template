@@ -25,6 +25,7 @@ async def getLoggedInState():
 	return loggedState
 
 
+@pytest.mark.order(1)
 @pytest.mark.asyncio(loop_scope="session")
 async def test_validateAppCookies(getLoggedInState):
 	loggedInState = getLoggedInState
@@ -85,7 +86,7 @@ async def test_loadMainPage(page: Page):
 	response = await page.goto(targetURL)
 	assert response.status == 200,f"{response}"
 
-
+@pytest.mark.order(2)
 @pytest.mark.asyncio(loop_scope='session')
 async def test_accessAuthzPageWithAuthn(browser: Browser, getLoggedInState):
 	g = await browser.new_context(storage_state=getLoggedInState)
@@ -96,7 +97,7 @@ async def test_accessAuthzPageWithAuthn(browser: Browser, getLoggedInState):
 
 	await g.close()
 
-
+@pytest.mark.order(3)
 @pytest.mark.asyncio(loop_scope='session')
 async def test_accessAuthzPageWithCorrectRole(browser: Browser, getLoggedInState):
 	g = await browser.new_context(storage_state=getLoggedInState)
@@ -119,3 +120,4 @@ async def test_accessAuthzPageWithCorrectRole(browser: Browser, getLoggedInState
 
 
 	await g.close()
+
