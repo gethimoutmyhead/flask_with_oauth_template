@@ -52,6 +52,7 @@ config files - todo
 * permittedRoles test with a 2nd user in a different role
 * permittedRoles test where multiple roles can be accepted
 * re-engineered tests to use playwright_async api, to allow multiple concurrent tests without breaking code
+* test for users with multiple roles will accessing authorized pages works correctly
 
 2026-08-23
 * new testing method using playwright - user logs in manually, allows MFA and other stuff, introspection when errors happen
