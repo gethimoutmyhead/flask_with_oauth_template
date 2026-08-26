@@ -32,6 +32,7 @@ config files - todo
 * tests to monitor behavior of access token, id token tests that are present but expired
 
 ### Functions
+* change the env file loading, json metadata loading, and the pyjwks clients into async versions
 * push form that allows user creation
 * user creation based on roles
 * template functions for client to edit user metadata, app metadata
