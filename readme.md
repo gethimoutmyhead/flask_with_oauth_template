@@ -12,7 +12,7 @@ launch with
 
 ```
 pipenv shell
-gunicorn wsgi:app
+gunicorn async-app:app --worker-class asgi --preload
 ```
 
 
@@ -47,6 +47,9 @@ config files - todo
 * permittedAttributes function testing - need more homework on how I would implement
 
 ## Completed
+2026-08-26
+* re-did everything as ASGI, to allow concurrency and multi-user logins. OUTSTANDING RESULT - a single worker is able to handle 3 users, logged in at once and interacting with the website
+
 2026-08-25
 * break-up ROPC test into invalid session cookie test, and a deprecated authenticateByROPCTest function
 * permittedRoles test with a 2nd user in a different role

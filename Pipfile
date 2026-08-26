@@ -17,6 +17,8 @@ gunicorn = "*"
 playwright = "*"
 pytest-asyncio = "*"
 pytest-playwright-asyncio = "*"
+quart = "*"
+httpx = "*"
 
 [dev-packages]
 
