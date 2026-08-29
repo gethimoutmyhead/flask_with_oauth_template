@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 tokensToTest = [
 	{
 		'test_token': {'nauthserver_token': 'someNonsense'},
-		'expected_error_message': 'AppAuthnMissing: authserver token missing from session'
+		'expected_error_message': 'AppAuthnERROR: session missing token authserver_token'
 	},	
 	{
 		'test_token': {

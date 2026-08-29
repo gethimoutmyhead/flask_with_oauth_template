@@ -78,27 +78,9 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 	def decorator(view_func):
 		@wraps(view_func)
 		async def wrapper(*args, **kwargs):
-			
-			## if not present, user is not logged in
-			if 'authserver_token' not in session:
-				loginURI, state = await URIandState_request_authserverLoginURL(
-					clientSession=oidcServer_client,
-					dict_idProviderMetaData=oidcserver_metadata,
-					url_audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
-					url_callbackAfterLogin=url_for('oidc_server_callback', _external=True),
-					url_destinationAfterAuth=request.full_path,
-				)	
-				session['oidc_state'] = state
-
-				response = await make_response(redirect(loginURI))
-				response.headers['X-Error-Message'] = 'AppAuthnMissing: authserver token missing from session'
-				response.headers['X-Error-Title'] = 'App Authentication Token Missing'
 	
+			## checks for errors in the tokens
 
-				return response
-
-			## checks for errors in the token
-			authserver_token = session.get('authserver_token')
 			list_requiredIdTokenClaims = [
 				'iss',
 				'sub',
@@ -112,29 +94,19 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				'aud',
 				f'https://{flaskAppSettings['app_server_url']}/roles'
 			]			
-			authserverToken_check1 = lambda token: {
-				True: token,
-				False: "AppAuthnERROR: access token not present"
-			}[('access_token' in token)]
-			authserverToken_check2 = lambda token: {
-				True: token,
-				False: "AppAuthnERROR: id token not present"
-			}[('id_token' in token)]
 			def sessionCookie_check1(sessionCookie):
-				print (sessionCookie)
 				return {
 					True: sessionCookie,
 					False: {
 						'X-Error-Title': "User not authenticated",
-						'X-Error-Message':'session missing token authserver_token'
+						'X-Error-Message':'AppAuthnERROR: session missing token authserver_token'
 					}
 				}[('authserver_token' in sessionCookie)]
 
 			def sessionCookie_check2(sessionCookie):
-				print (sessionCookie)
 				keysRequired = ['access_token', 'id_token']
 				keysPresent = sessionCookie['authserver_token'].keys()
-				keysMissing = list(set(keysRequired) - set(keysPresent))
+				keysMissing = sorted(list(set(keysRequired) - set(keysPresent)))
 				# print (keysRequired, keysPresent, keysMissing)
 				# print (set(keysRequired) <= set(keysPresent))
 				return {
@@ -147,7 +119,6 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				
 
 			def sessionCookie_check3(sessionCookie):
-				print (sessionCookie)
 				IdToken_check = partial(
 					authserverToken_validateIdToken,
 					Placeholder,
@@ -171,7 +142,6 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				return newCookie
 
 			def sessionCookie_check4(sessionCookie):
-				print (sessionCookie)
 				AccessToken_check = partial(
 					authserverToken_validateAccessToken,
 					Placeholder,
@@ -193,25 +163,6 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 					}
 				return newCookie
 
-			
-			authserverToken_check3 = partial(
-				authserverToken_validateIdToken,
-				Placeholder,
-				list_requiredIdTokenClaims,
-				oidc_jwksClient, 
-				[authServerSettings['oidc_clientID'], pyApp_auth0Settings['oidc_clientID']], 
-				oidc_tokenSigningAlgos
-			)
-
-			authserverToken_check4 = partial(
-				authserverToken_validateAccessToken,
-				Placeholder,
-				list_requiredAccessTokenClaims,
-				oidc_jwksClient, 
-				f"{authServerSettings['oidc_authserver']}/api/v2/", 
-				oidc_tokenSigningAlgos
-			)
-
 			checklist_authzFunctions = [
 				sessionCookie_check1,
 				sessionCookie_check2,
@@ -225,11 +176,6 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				return func(acc)
 
 			checks = reduce(errorCheck, checklist_authzFunctions, session)
-			# checks = reduce(lambda acc, func: {
-			# True: func(acc),
-			# False: acc,
-			# }[('X-Error-Title' not in acc)],checklist_authzFunctions, session)
-
 
 			if ('X-Error-Message' in checks):              
 				loginURI, state = await URIandState_request_authserverLoginURL(
@@ -244,8 +190,6 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 
 				response = await make_response(redirect(loginURI))
 				response.headers.update(checks)
-				# response.headers['X-Error-Message'] = checks
-				# response.headers['X-Error-Title'] = 'App Authentication Token Error'
 				return response
 
 			## checks if user is authorized to access this area
@@ -271,15 +215,6 @@ async def hello():
 
 @app.route("/login")
 async def login():
-	url_redirectAfterAuth = url_for('oidc_server_callback', _external=True)
-	# loginURI, state = oidcServer_client.create_authorization_url(
-	# 	url=oidcserver_metadata['authorization_endpoint'],
-	# 	redirect_uri=url_redirectAfterAuth,
-	# 	response_type='code',
-	# 	scope='openid profile offline_access read:current_user read:roles',
-	# 	state=jwt_generateRedirectState(url_for('logged_in', _external=True)),
-	# 	audience='https://dev-ei6babp7krz2qnk3.au.auth0.com/api/v2/',
-	# )
 	login_hint = request.args.get('login_hint', '')
 	loginURI, state = await URIandState_request_authserverLoginURL(
 			clientSession=oidcServer_client,
