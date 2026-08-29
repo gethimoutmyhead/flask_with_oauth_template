@@ -120,6 +120,80 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				True: token,
 				False: "AppAuthnERROR: id token not present"
 			}[('id_token' in token)]
+			def sessionCookie_check1(sessionCookie):
+				print (sessionCookie)
+				return {
+					True: sessionCookie,
+					False: {
+						'X-Error-Title': "User not authenticated",
+						'X-Error-Message':'session missing token authserver_token'
+					}
+				}[('authserver_token' in sessionCookie)]
+
+			def sessionCookie_check2(sessionCookie):
+				print (sessionCookie)
+				keysRequired = ['access_token', 'id_token']
+				keysPresent = sessionCookie['authserver_token'].keys()
+				keysMissing = list(set(keysRequired) - set(keysPresent))
+				# print (keysRequired, keysPresent, keysMissing)
+				# print (set(keysRequired) <= set(keysPresent))
+				return {
+					True: sessionCookie,
+					False: {
+						'X-Error-Message': f"AppAuthnERROR: session['authserver_token'] missing keys {', '.join(keysMissing)}",
+						'X-Error-Title': f"App Authentication Token Error - Bad Request"
+						}
+					}[(set(keysRequired) <= set(keysPresent))]
+				
+
+			def sessionCookie_check3(sessionCookie):
+				print (sessionCookie)
+				IdToken_check = partial(
+					authserverToken_validateIdToken,
+					Placeholder,
+					list_requiredIdTokenClaims,
+					oidc_jwksClient, 
+					[authServerSettings['oidc_clientID'], pyApp_auth0Settings['oidc_clientID']], 
+					oidc_tokenSigningAlgos
+				)
+
+				z = IdToken_check(sessionCookie['authserver_token'])
+				validatedToken = not ('AppAuthnERROR' in z)
+				if validatedToken:
+					newCookie = sessionCookie.copy()
+					newCookie['authserver_token']['idTokenDecoded'] = z['idTokenDecoded']
+
+				else:
+					newCookie = {
+						'X-Error-Message': z,
+						'X-Error-Title': f"App Authentication Token Error"
+					}
+				return newCookie
+
+			def sessionCookie_check4(sessionCookie):
+				print (sessionCookie)
+				AccessToken_check = partial(
+					authserverToken_validateAccessToken,
+					Placeholder,
+					list_requiredIdTokenClaims,
+					oidc_jwksClient, 
+					f"{authServerSettings['oidc_authserver']}/api/v2/", 
+					oidc_tokenSigningAlgos
+				)
+
+				z = AccessToken_check(sessionCookie['authserver_token'])
+				validatedToken = not ('AppAuthnERROR' in z)
+				if validatedToken:
+					newCookie = sessionCookie.copy()
+					newCookie['authserver_token']['accessTokenDecoded'] = z['accessTokenDecoded']
+				else:
+					newCookie = {
+						'X-Error-Message': z,
+						'X-Error-Title': f"App Authentication Token Error"
+					}
+				return newCookie
+
+			
 			authserverToken_check3 = partial(
 				authserverToken_validateIdToken,
 				Placeholder,
@@ -139,18 +213,25 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 			)
 
 			checklist_authzFunctions = [
-				authserverToken_check1,
-				authserverToken_check2,
-				authserverToken_check3,
-				authserverToken_check4,
+				sessionCookie_check1,
+				sessionCookie_check2,
+				sessionCookie_check3,
+				sessionCookie_check4,
 			]
+			# print (sessionCookie_check2(session))
+			def errorCheck(acc, func):
+				if 'X-Error-Title' in acc:
+					return (acc)
+				return func(acc)
 
-			checks = reduce(lambda acc, func: {
-			True: func(acc),
-			False: acc,
-			}[('AppAuthnERROR:' not in acc)], checklist_authzFunctions, authserver_token)
+			checks = reduce(errorCheck, checklist_authzFunctions, session)
+			# checks = reduce(lambda acc, func: {
+			# True: func(acc),
+			# False: acc,
+			# }[('X-Error-Title' not in acc)],checklist_authzFunctions, session)
 
-			if ('AppAuthnERROR' in checks):              
+
+			if ('X-Error-Message' in checks):              
 				loginURI, state = await URIandState_request_authserverLoginURL(
 					clientSession=oidcServer_client,
 					dict_idProviderMetaData=oidcserver_metadata,
@@ -162,16 +243,16 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				headers = {}
 
 				response = await make_response(redirect(loginURI))
-				response.headers['X-Error-Message'] = checks
-				response.headers['X-Error-Title'] = 'App Authentication Token Error'
+				response.headers.update(checks)
+				# response.headers['X-Error-Message'] = checks
+				# response.headers['X-Error-Title'] = 'App Authentication Token Error'
 				return response
 
 			## checks if user is authorized to access this area
-			userRoles = checks['idTokenDecoded']['payload'][f'https://{flaskAppSettings['app_server_url']}/roles']
+			userRoles = checks['authserver_token']['idTokenDecoded']['payload'][f'https://{flaskAppSettings['app_server_url']}/roles']
 
 			## if no permittedRoles are assigned, then any user role is accepted
 			acceptedRoles = permittedRoles + userRoles * (len(permittedRoles) == 0)
-
 			authorizedUserRoles = set(acceptedRoles) & set(userRoles)
 
 			if (not authorizedUserRoles):			

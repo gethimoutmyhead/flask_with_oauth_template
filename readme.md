@@ -53,6 +53,8 @@ config files - todo
 * /logged_out now returns a 400 Bad Request HTTP response if the status parameter and status cookie don't match
 * test functions that create cookies manually, are now using the flaskAppSettings['app_server_url
 ] as the domain, not hard-coded in
+* apparently i was not validating access tokens, only id tokens
+* started a re-factor that i really should not have done..
 
 2026-08-26
 * re-did everything as ASGI, to allow concurrency and multi-user logins. OUTSTANDING RESULT - a single worker is able to handle 3 users, logged in at once and interacting with the website

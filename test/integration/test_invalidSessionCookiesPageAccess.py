@@ -13,6 +13,14 @@ tokensToTest = [
 	{
 		'test_token': {'nauthserver_token': 'someNonsense'},
 		'expected_error_message': 'AppAuthnMissing: authserver token missing from session'
+	},	
+	{
+		'test_token': {
+			'authserver_token':{
+				'nid_token':'whisky',
+				}
+			},
+		'expected_error_message': "AppAuthnERROR: session['authserver_token'] missing keys access_token, id_token"
 	},
 	{
 		'test_token': {
@@ -20,7 +28,7 @@ tokensToTest = [
 				'id_token':'whisky',
 				}
 			},
-		'expected_error_message': 'AppAuthnERROR: access token not present'
+		'expected_error_message': "AppAuthnERROR: session['authserver_token'] missing keys access_token"
 	},
 	{
 		'test_token': {
@@ -28,7 +36,7 @@ tokensToTest = [
 				'access_token':'whisky',
 				}
 			},
-		'expected_error_message': 'AppAuthnERROR: id token not present'
+		'expected_error_message': "AppAuthnERROR: session['authserver_token'] missing keys id_token"
 	},
 	{
 		'test_token': {

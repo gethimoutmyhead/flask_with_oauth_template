@@ -25,7 +25,7 @@ def authserverToken_validateAccessToken(token, list_requiredClaims, jwksClient, 
 	# list_requiredIdTokenClaims = ['iss', 'sub', 'aud',f'https://{flaskAppSettings['app_server_url']}/roles']
 
 	try:
-		signing_key = jwksClient.get_signing_key_from_jwt(token['id_token'])
+		signing_key = jwksClient.get_signing_key_from_jwt(token['access_token'])
 		dict_accessTokenDecoded = jwt.decode_complete(
 			token['access_token'],
 			key=signing_key,
