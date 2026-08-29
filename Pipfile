@@ -19,7 +19,6 @@ pytest-asyncio = "*"
 pytest-playwright-asyncio = "*"
 quart = "*"
 httpx = "*"
-pyjwt-key-fetcher = "*"
 
 [dev-packages]
 

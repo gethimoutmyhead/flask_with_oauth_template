@@ -27,8 +27,6 @@ url_for_oidcserver_metadataURL = f"{authServerSettings['oidc_authserver']}/.well
 
 request_oidcserver_metadata = fetch_url.get(url_for_oidcserver_metadataURL)
 oidcserver_metadata = request_oidcserver_metadata.json()
-oidc_jwksClient = jwt.PyJWKClient(oidcserver_metadata["jwks_uri"])
-accessToken_jwksClient = jwt.PyJWKClient(f"{authServerSettings['oidc_authserver']}/.well-known/jwks.json")
 
 oidc_tokenSigningAlgos = oidcserver_metadata['id_token_signing_alg_values_supported']
 oidcServer_client = AsyncOAuth2Client(
@@ -179,7 +177,7 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 			checks = reduce(errorCheck, checklist_authzFunctions, session)
 			for func in [sessionCookie_check3, sessionCookie_check4]:
 				if 'X-Error-Title' not in checks:
-					print (checks)
+					# print (checks)
 					checks = await func(checks)
 
 
@@ -296,38 +294,75 @@ async def oidc_server_callback():
 			errorMessage=e
 			)
 
-	access_token = oidc_token['access_token']
-	id_token = oidc_token['id_token']
+	list_requiredIdTokenClaims = [
+		'iss',
+		'sub',
+		'aud',
+		f'https://{flaskAppSettings['app_server_url']}/roles'
+	]
 
-	signing_key = oidc_jwksClient.get_signing_key_from_jwt(id_token)
-	try:
-		signing_key = oidc_jwksClient.get_signing_key_from_jwt(id_token)
-		validation = jwt.decode_complete(
-			id_token,
-			key=signing_key,
-			audience=authServerSettings['oidc_clientID'],
-			algorithms=oidc_tokenSigningAlgos
-			)
-	except Exception as e:
+	list_requiredAccessTokenClaims = [
+		'iss',
+		'sub',
+		'aud',
+		f'https://{flaskAppSettings['app_server_url']}/roles'
+	]
+	async def sessionCookie_check3(sessionCookie):
+		IdToken_check = partial(
+			authserverToken_validateIdToken,
+			Placeholder,
+			list_requiredIdTokenClaims,
+			url_for_oidcserver_metadataURL, 
+			[authServerSettings['oidc_clientID'], pyApp_auth0Settings['oidc_clientID']], 
+			oidc_tokenSigningAlgos
+		)
+
+		z = await IdToken_check(sessionCookie)
+		validatedToken = not ('AppAuthnERROR' in z)
+		if validatedToken:
+			newCookie = sessionCookie.copy()
+			newCookie['idTokenDecoded'] = z['idTokenDecoded']
+
+		else:
+			newCookie = {
+				'X-Error-Message': z,
+				'X-Error-Title': f"App Authentication Token Error"
+			}
+		return newCookie
+
+	async def sessionCookie_check4(sessionCookie):
+		AccessToken_check = partial(
+			authserverToken_validateAccessToken,
+			Placeholder,
+			list_requiredIdTokenClaims,
+			url_for_oidcserver_metadataURL, 
+			f"{authServerSettings['oidc_authserver']}/api/v2/", 
+			oidc_tokenSigningAlgos
+		)
+
+		z = await AccessToken_check(sessionCookie)
+		validatedToken = not ('AppAuthnERROR' in z)
+		if validatedToken:
+			newCookie = sessionCookie.copy()
+			newCookie['accessTokenDecoded'] = z['accessTokenDecoded']
+		else:
+			newCookie = {
+				'X-Error-Message': z,
+				'X-Error-Title': f"App Authentication Token Error"
+			}
+		return newCookie
+
+	checks = oidc_token
+	for func in [sessionCookie_check3, sessionCookie_check4]:
+		if 'X-Error-Title' not in checks:
+			# print (checks)
+			checks = await func(checks)
+
+	if 'X-Error-Title' in checks:
 		return await render_template(
 			"auth-error.html",
-			errorMessage=f"id_token validation error: {e}" 
+			errorMessage=f"access_token validation error: {checks['X-Error-Message']}" 
 			)
-
-	try:
-		signing_key = accessToken_jwksClient.get_signing_key_from_jwt(access_token)
-		dict_accessTokenDecoded = jwt.decode_complete(
-			access_token,
-			key=signing_key,
-			audience=f"{authServerSettings['oidc_authserver']}/api/v2/",
-			algorithms=['RS256']#oidc_tokenSigningAlgos
-			)
-	except Exception as e:
-		return await render_template(
-			"auth-error.html",
-			errorMessage=f"access_token validation error: {e}" 
-			)
-
 	session['authserver_token'] = oidc_token
 	state_decoded = dict_decodedJWT(session['oidc_state'])
 	redirect_url = state_decoded['intended_path']

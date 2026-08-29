@@ -31,7 +31,6 @@ config files - todo
 * tests to monitor behavior of access token, id token tests that are present but expired
 
 ### Functions
-* change the env file loading, json metadata loading, and the pyjwks clients into async versions
 * push form that allows user creation
 * user creation based on roles
 * template functions for client to edit user metadata, app metadata
@@ -40,8 +39,7 @@ config files - todo
 * authorization check that checks permittedAttributes
 
 ### refactoring
-* the authorization_check has an if for logged out / authenticated / authorized; should be able to refactor these
-
+* DONT BOTHER LOL - change the env file loading, json metadata loading, to async versions
 
 ### Research
 * permittedAttributes function testing - need more homework on how I would implement
@@ -55,6 +53,11 @@ config files - todo
 ] as the domain, not hard-coded in
 * apparently i was not validating access tokens, only id tokens
 * started a re-factor that i really should not have done..
+* pw tests now verify that the correct page was loaded, not just a status code check
+* changed the pyjwks clients into an async version, modified the token validation functions
+* big revamp of the authorization checks to be more streamlined and async compatible, same for after-authentication
+* the authorization_check has an if for logged out / authenticated / authorized; should be able to refactor these
+* no more refactors plz
 
 2026-08-26
 * re-did everything as ASGI, to allow concurrency and multi-user logins. OUTSTANDING RESULT - a single worker is able to handle 3 users, logged in at once and interacting with the website
