@@ -7,7 +7,7 @@ import flaskCookieMaker
 from itertools import repeat
 from functools import reduce
 import jwt
-
+from urllib.parse import urlencode
 
 tokensToTest = [
 	{
@@ -49,7 +49,7 @@ def test_accessAuthzPageWithInvalidTokens(tokenToTest):
 		sessionCookie = requests.cookies.create_cookie(
 				name='session',
 				value=tokenAsFlaskCookie,
-				domain='127.0.0.1',
+				domain=f"{flaskAppSettings['app_server_url'].split(':')[0]}",
 				path='/',
 				secure=True,
 				rest={'HttpOnly': True}
@@ -80,3 +80,52 @@ def test_accessAuthzPageWithInvalidTokens(tokenToTest):
 		f"got {response.headers['X-Error-Message']!r} instead."
 	)
 
+	testSession.close()
+
+def test_loggedOutPageWithInvalidTokens():
+	oidc_state = {'oidc_state':'zonzon'}
+	requestParameter_state = {'state': 'luptar'}
+	target_url=f"https://{flaskAppSettings['app_server_url']}/logged_out"
+	
+	try:
+		tokenAsFlaskCookie = flaskCookieMaker.encodeFlaskCookie(flaskAppSettings['app_cookieSigning_secret'],oidc_state)
+		sessionCookie = requests.cookies.create_cookie(
+				name='session',
+				value=tokenAsFlaskCookie,
+				domain=f"{flaskAppSettings['app_server_url'].split(':')[0]}",
+				path='/',
+				secure=True,
+				rest={'HttpOnly': True}
+			)
+		with requests.Session() as testSession:
+			testSession.cookies.set_cookie(sessionCookie)
+
+			response = testSession.get(f"{target_url}?{urlencode(requestParameter_state)}",verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
+
+			assert response.status_code == 400, f"expected 400 \n received {response} \n {oidc_state} _ {requestParameter_state}"
+	except Exception as e:
+		pytest.fail(f"unknown exception, tokenToTest is {oidc_state}\n {e} \n {tokenAsFlaskCookie} \n {sessionCookie}")
+
+def test_loggedOutPageWithValidTokens():
+	oidc_state = {'oidc_state':'zonzon'}
+	requestParameter_state = {'state': 'zonzon'}
+	target_url=f"https://{flaskAppSettings['app_server_url']}/logged_out"
+	
+	try:
+		tokenAsFlaskCookie = flaskCookieMaker.encodeFlaskCookie(flaskAppSettings['app_cookieSigning_secret'],oidc_state)
+		sessionCookie = requests.cookies.create_cookie(
+				name='session',
+				value=tokenAsFlaskCookie,
+				domain=f"{flaskAppSettings['app_server_url'].split(':')[0]}",
+				path='/',
+				secure=True,
+				rest={'HttpOnly': True}
+			)
+		with requests.Session() as testSession:
+			testSession.cookies.set_cookie(sessionCookie)
+
+			response = testSession.get(f"{target_url}?{urlencode(requestParameter_state)}",verify=flaskAppSettings['publicCert_site'], allow_redirects=False)
+
+			assert response.status_code == 200, f"expected 200 \n received {response} \n {oidc_state} _ {requestParameter_state}"
+	except Exception as e:
+		pytest.fail(f"unknown exception, tokenToTest is {oidc_state}\n {e} \n {tokenAsFlaskCookie} \n {sessionCookie}")

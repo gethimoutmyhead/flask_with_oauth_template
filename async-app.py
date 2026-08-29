@@ -371,7 +371,7 @@ async def logged_out():
 					errorMessage=f"Error - local and response state mismatch\nlocal state is {session.get('oidc_state','undefined')}\nresponse state is {request.args.get('state', 'undefined')}"
 					))
 		session.clear()
-		return page
+		return page, 400
 	session.clear()
 	return await render_template('logged-out.html')
 

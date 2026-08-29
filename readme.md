@@ -26,7 +26,6 @@ config files - todo
 
 ## Things to do
 ### tests
-* test that logout flow works correctly
 * tests to monitor behavior of access token, id token tests that are present but tampered
 * tests to monitor behavior of access token, id token tests that are present but have claims missing
 * tests to monitor behavior of access token, id token tests that are present but expired
@@ -48,6 +47,13 @@ config files - todo
 * permittedAttributes function testing - need more homework on how I would implement
 
 ## Completed
+2026-08-29
+* tests that logout flow works correctly
+* checked that async tests still allow me to set test order, which works goodly.
+* /logged_out now returns a 400 Bad Request HTTP response if the status parameter and status cookie don't match
+* test functions that create cookies manually, are now using the flaskAppSettings['app_server_url
+] as the domain, not hard-coded in
+
 2026-08-26
 * re-did everything as ASGI, to allow concurrency and multi-user logins. OUTSTANDING RESULT - a single worker is able to handle 3 users, logged in at once and interacting with the website
 

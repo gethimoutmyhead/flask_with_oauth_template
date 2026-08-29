@@ -24,7 +24,7 @@ async def getLoggedInState():
 
 	return loggedState
 
-
+@pytest.mark.order(1)
 @pytest.mark.asyncio(loop_scope="session")
 async def test_validateAppCookies(getLoggedInState):
 	loggedInState = getLoggedInState
@@ -78,14 +78,14 @@ async def test_validateAppCookies(getLoggedInState):
 	except Exception as e:
 		pytest.fail(f'access token failed to decode - {e} \n access token {dict_authServerToken["access_token"]}')
 
-
+@pytest.mark.order(2)
 @pytest.mark.asyncio(loop_scope='session')
 async def test_loadMainPage(page: Page):
 	targetURL = f"https://{flaskAppSettings['app_server_url']}/authenticated"
 	response = await page.goto(targetURL)
 	assert response.status == 200,f"{response}"
 
-
+@pytest.mark.order(3)
 @pytest.mark.asyncio(loop_scope='session')
 async def test_accessAuthzPageWithAuthn(browser: Browser, getLoggedInState):
 	g = await browser.new_context(storage_state=getLoggedInState)
@@ -97,7 +97,7 @@ async def test_accessAuthzPageWithAuthn(browser: Browser, getLoggedInState):
 
 	await g.close()
 
-
+@pytest.mark.order(4)
 @pytest.mark.asyncio(loop_scope='session')
 async def test_accessAuthzPageWithWrongRole(browser: Browser, getLoggedInState):
 	g = await browser.new_context(storage_state=getLoggedInState)
@@ -109,7 +109,7 @@ async def test_accessAuthzPageWithWrongRole(browser: Browser, getLoggedInState):
 
 	await g.close()
 
-
+@pytest.mark.order(5)
 @pytest.mark.asyncio(loop_scope='session')
 async def test_accessAuthzPageWithCorrectRole(browser: Browser, getLoggedInState):
 	g = await browser.new_context(storage_state=getLoggedInState)
@@ -126,3 +126,17 @@ async def test_accessAuthzPageWithCorrectRole(browser: Browser, getLoggedInState
 	assert response.status == 200,f"expected status 200, received {response} \n {pageData}"
 
 	await g.close()
+
+@pytest.mark.order(6)
+@pytest.mark.asyncio(loop_scope='session')
+async def test_logoutFlow(browser: Browser, getLoggedInState):
+	g = await browser.new_context(storage_state=getLoggedInState)
+	page = await g.new_page()
+
+	targetURL = f"https://{flaskAppSettings['app_server_url']}/logout"
+	expectedDestinationURL = f"https://{flaskAppSettings['app_server_url']}/logged_out"
+	response = await page.goto(targetURL)
+	pageData = await response.text()
+	destURL = page.url
+	assert response.status == 200,f"expected status 200, received {response} \n {pageData}"
+	assert expectedDestinationURL in destURL, f"logout request sent to {destURL}"
