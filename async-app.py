@@ -12,7 +12,7 @@ from loadMyAppSettings import flaskAppSettings, authServerSettings, pyApp_auth0S
 from itertools import repeat, chain
 from functools import wraps, reduce, partial, Placeholder
 from functions_tokenValidation import authserverToken_validateIdToken, authserverToken_validateAccessToken
-
+import asyncio
 
 fileToLoad=flaskAppSettings['app_defaultPageMeta_jsonfile']
 with open(fileToLoad, "r", encoding='utf-8') as file:
@@ -93,7 +93,8 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				'sub',
 				'aud',
 				f'https://{flaskAppSettings['app_server_url']}/roles'
-			]			
+			]
+	
 			def sessionCookie_check1(sessionCookie):
 				return {
 					True: sessionCookie,
@@ -116,19 +117,19 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 						'X-Error-Title': f"App Authentication Token Error - Bad Request"
 						}
 					}[(set(keysRequired) <= set(keysPresent))]
-				
 
-			def sessionCookie_check3(sessionCookie):
+
+			async def sessionCookie_check3(sessionCookie):
 				IdToken_check = partial(
 					authserverToken_validateIdToken,
 					Placeholder,
 					list_requiredIdTokenClaims,
-					oidc_jwksClient, 
+					url_for_oidcserver_metadataURL, 
 					[authServerSettings['oidc_clientID'], pyApp_auth0Settings['oidc_clientID']], 
 					oidc_tokenSigningAlgos
 				)
 
-				z = IdToken_check(sessionCookie['authserver_token'])
+				z = await IdToken_check(sessionCookie['authserver_token'])
 				validatedToken = not ('AppAuthnERROR' in z)
 				if validatedToken:
 					newCookie = sessionCookie.copy()
@@ -141,17 +142,17 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 					}
 				return newCookie
 
-			def sessionCookie_check4(sessionCookie):
+			async def sessionCookie_check4(sessionCookie):
 				AccessToken_check = partial(
 					authserverToken_validateAccessToken,
 					Placeholder,
 					list_requiredIdTokenClaims,
-					oidc_jwksClient, 
+					url_for_oidcserver_metadataURL, 
 					f"{authServerSettings['oidc_authserver']}/api/v2/", 
 					oidc_tokenSigningAlgos
 				)
 
-				z = AccessToken_check(sessionCookie['authserver_token'])
+				z = await AccessToken_check(sessionCookie['authserver_token'])
 				validatedToken = not ('AppAuthnERROR' in z)
 				if validatedToken:
 					newCookie = sessionCookie.copy()
@@ -166,8 +167,8 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 			checklist_authzFunctions = [
 				sessionCookie_check1,
 				sessionCookie_check2,
-				sessionCookie_check3,
-				sessionCookie_check4,
+				# sessionCookie_check3,
+				# sessionCookie_check4,
 			]
 			# print (sessionCookie_check2(session))
 			def errorCheck(acc, func):
@@ -176,6 +177,11 @@ def authorization_check(permittedRoles=[], permittedAttributes=[]):
 				return func(acc)
 
 			checks = reduce(errorCheck, checklist_authzFunctions, session)
+			for func in [sessionCookie_check3, sessionCookie_check4]:
+				if 'X-Error-Title' not in checks:
+					print (checks)
+					checks = await func(checks)
+
 
 			if ('X-Error-Message' in checks):              
 				loginURI, state = await URIandState_request_authserverLoginURL(

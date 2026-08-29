@@ -93,6 +93,7 @@ async def test_accessAuthzPageWithAuthn(browser: Browser, getLoggedInState):
 	targetURL = f"https://{flaskAppSettings['app_server_url']}/authenticated"
 	response = await page.goto(targetURL)
 	assert response.status == 200,f"{response}"
+	assert targetURL in page.url,f"mismatch between requested page {targetURL} and response {page.url}"
 
 	await g.close()
 
@@ -119,11 +120,13 @@ async def test_accessAuthzPageWithCorrectRole(browser: Browser, getLoggedInState
 	response = await page.goto(targetURL)
 	pageData = await response.text()
 	assert response.status == 200,f"expected status 200, received {response} \n {pageData}"
+	assert targetURL in page.url,f"mismatch between requested page {targetURL} and response {page.url}"
 
 	targetURL = f"https://{flaskAppSettings['app_server_url']}/allied-health-page"
 	response = await page.goto(targetURL)
 	pageData = await response.text()
 	assert response.status == 200,f"expected status 200, received {response} \n {pageData}"
+	assert targetURL in page.url,f"mismatch between requested page {targetURL} and response {page.url}"
 
 	await g.close()
 
