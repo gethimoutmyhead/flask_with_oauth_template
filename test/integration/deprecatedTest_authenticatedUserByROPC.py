@@ -138,7 +138,7 @@ def test_getUserTokens_authenticatedoctorSession():
 	flaskSessionCookie = requests.cookies.create_cookie(
 			name='session',
 			value=authserver_token_asFlaskCookie,
-			domain='127.0.0.1',
+			domain=f"{flaskAppSettings['app_server_url'].split(':')[0]}",
 			path='/',
 			secure=True,
 			rest={'HttpOnly': True}

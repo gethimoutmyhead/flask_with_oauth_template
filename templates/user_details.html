@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{%block addMetaTags %}
+	{% for metaTag in metaTags -%}
+	<meta{% for key, value in metaTag.items() %} {{ key }}="{{ value }}"{% endfor %}>
+	{% endfor -%}
+
+{% endblock %}
+{% block title %} App server response went well {% endblock %}
+<h1> Logged in user details </h1>
+{% block content %} 
+<table>
+	<tr>
+		<th> Key </th>
+		<th> Value </th>
+	</tr>
+
+	{% for key, value in userMeta.items() %}
+	<tr>
+		<td> {{ key }} </td>
+		<td> {{ value }} </td>
+	</tr>
+	{% endfor -%}
+</table>
+{% endblock %}
+<br>

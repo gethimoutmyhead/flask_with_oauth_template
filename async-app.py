@@ -6,6 +6,7 @@ from authlib.integrations.httpx_client import AsyncOAuth2Client
 import jwt
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlencode
+import httpx
 
 import random, string
 from loadMyAppSettings import flaskAppSettings, authServerSettings, pyApp_auth0Settings
@@ -435,18 +436,19 @@ async def logged_out():
 @app.route('/user_details')
 @authorization_check()
 async def user_details():
-	oidcToken = [*filter(lambda x: x is not None, [session.get('authserver_token')])]
-	id_token = [*filter(lambda x: x is not None, map(lambda x: x.get('id_token'), oidcToken))]
-	access_token = [*filter(lambda x: x is not None, map(lambda x: x.get('access_token'), oidcToken))]
+	access_token = session.get('authserver_token')['access_token']
+	async with httpx.AsyncClient() as client:
+		response = await client.get(oidcserver_metadata['userinfo_endpoint'], headers={'authorization': f'Bearer {access_token}'})
+		userMeta = response.json()
 
-	userMeta = fetch_url.get(oidcserver_metadata['userinfo_endpoint'], headers={'authorization': f"Bearer {access_token[0]}"})
+	# userMeta = fetch_url.get(oidcserver_metadata['userinfo_endpoint'], headers={'authorization': f"Bearer {access_token}"})
 
 	# getUserURL=f"{env['oidc_authserver']}/api/v2/users/{fillThisWithAccessTokenSub}"
 	# z=requests.get(getUserURL,headers={'authorization':f"Bearer {access_token}"})
 
 	return await render_template(
-			"response.html",
-			responseMessage=userMeta.content
+			"user_details.html",
+			userMeta=userMeta
 			)
 
 @app.route('/pharmacist-page')
@@ -481,3 +483,38 @@ async def alliedHealthPage():
 			"response.html",
 			responseMessage="You have opened the Allied Health page"
 			)
+
+@app.route('/authAPI/checkUserEmail')
+async def checkUserExists():
+	email = request.args.get('email')
+	url_for_token=f"{authServerSettings['oidc_authserver']}/oauth/token"
+	client_id=authServerSettings['oidc_clientID']
+	client_secret=authServerSettings['oidc_clientSecret']
+	audience=f"{authServerSettings['oidc_authserver']}/api/v2/"
+	grant_type="client_credentials"	
+	async with httpx.AsyncClient() as client:
+		payload =  { 
+			'grant_type': grant_type,
+			'client_id': client_id,
+			'client_secret': client_secret,
+			'audience': audience
+  		}
+		response = await client.post(url_for_token, data=payload)
+		oauth = response.json()
+		access_token = oauth.get('access_token')
+
+		headers = {
+			'Authorization': f'Bearer {access_token}',
+			'Content-Type': 'application/json'
+		}
+
+		query = {
+			'email': email,
+			'fields': 'email',
+			'include_fields':'true',
+		}
+		url_auth0APIRequest = f"{authServerSettings['oidc_authserver']}/api/v2/users-by-email?{urlencode(query)}"
+
+		response = await client.get(url_auth0APIRequest, headers=headers)
+
+	return response.json(),response.status_code

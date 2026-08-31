@@ -26,9 +26,7 @@ config files - todo
 
 ## Things to do
 ### tests
-* tests to monitor behavior of access token, id token tests that are present but tampered
-* tests to monitor behavior of access token, id token tests that are present but have claims missing
-* tests to monitor behavior of access token, id token tests that are present but expired
+
 
 ### Functions
 * push form that allows user creation
@@ -44,7 +42,25 @@ config files - todo
 ### Research
 * permittedAttributes function testing - need more homework on how I would implement
 
+## unnecessary 
+* tests to monitor behavior of access token, id token tests that are present but tampered
+* tests to monitor behavior of access token, id token tests that are present but have claims missing
+* tests to monitor behavior of access token, id token tests that are present but expired
+- all of these are inbuilt into jwt validation, will either pass or fail, and I have mechanisms to examine the error (appAuthnError headers)
+
+## Notes
+auth0 metadata
+* user_metadata is for user preferences (eg language, preferences and options menu)
+* client_metadata is for specific clients that attach to an app
+* app_metadata can't be modified by user, only the app can do it. can store payment portal tokens and other site registrations here
+* management API created users can have app_metadata modified, authentication API new users you can only add user_metadata
+* roles need to be added to user after creation is complete
+
 ## Completed
+2026-09-01
+* check for valid user emails
+* user details page looks better formatted now, and uses async httpx
+
 2026-08-29
 * tests that logout flow works correctly
 * checked that async tests still allow me to set test order, which works goodly.
