@@ -26,7 +26,10 @@ config files - todo
 
 ## Things to do
 ### tests
-
+* attempt to create a new user
+* attempt to create a new user that already exists - return a 409
+* attempt to create a new user with a unique app_metadata attribute - should return a 409
+* create a user, login in, do things, delete user at the end, test that everything worked correct
 
 ### Functions
 * push form that allows user creation
