@@ -26,10 +26,7 @@ config files - todo
 
 ## Things to do
 ### tests
-* attempt to create a new user
-* attempt to create a new user that already exists - return a 409
-* attempt to create a new user with a unique app_metadata attribute - should return a 409
-* create a user, login in, do things, delete user at the end, test that everything worked correct
+
 
 ### Functions
 * push form that allows user creation
@@ -40,16 +37,20 @@ config files - todo
 * authorization check that checks permittedAttributes
 
 ### refactoring
-* DONT BOTHER LOL - change the env file loading, json metadata loading, to async versions
+
 
 ### Research
 * permittedAttributes function testing - need more homework on how I would implement
 
 ## unnecessary 
-* tests to monitor behavior of access token, id token tests that are present but tampered
-* tests to monitor behavior of access token, id token tests that are present but have claims missing
-* tests to monitor behavior of access token, id token tests that are present but expired
-- all of these are inbuilt into jwt validation, will either pass or fail, and I have mechanisms to examine the error (appAuthnError headers)
+~~ tests to monitor behavior of access token, id token tests that are present but tampered ~~
+~~ tests to monitor behavior of access token, id token tests that are present but have claims missing ~~
+~~ tests to monitor behavior of access token, id token tests that are present but expired ~~
+* all of these are inbuilt into jwt validation, will either pass or fail, and I have mechanisms to examine the error (appAuthnError headers)
+~~ test attempt to create a new user with a unique app_metadata attribute - should return a 409 ~~
+- need to set-up auth0 actions correctly for this, out of scope on this project
+~~ change the env file loading, json metadata loading, to async versions ~~
+* DONT BOTHER LOL - env file needs to load before anything else can happen. json metadata can probably be done, but just adds extra work for very little gain
 
 ## Notes
 auth0 metadata
@@ -63,6 +64,9 @@ auth0 metadata
 2026-09-01
 * check for valid user emails
 * user details page looks better formatted now, and uses async httpx
+* test- attempt to create a new user
+* test- attempt to create a new user that already exists - return a 409
+* test- create a user, login in, do things, delete user at the end, test that everything worked correct
 
 2026-08-29
 * tests that logout flow works correctly
