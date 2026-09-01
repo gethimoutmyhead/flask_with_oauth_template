@@ -43,12 +43,14 @@ config files - todo
 * permittedAttributes function testing - need more homework on how I would implement
 
 ## unnecessary 
-~~tests to monitor behavior of access token, id token tests that are present but tampered~~
-~~tests to monitor behavior of access token, id token tests that are present but have claims missing~~
-~~tests to monitor behavior of access token, id token tests that are present but expired~~
+* ~~tests to monitor behavior of access token, id token tests that are present but tampered~~
+* ~~tests to monitor behavior of access token, id token tests that are present but have claims missing~~
+* ~~tests to monitor behavior of access token, id token tests that are present but expired~~
 * all of these are inbuilt into jwt validation, will either pass or fail, and I have mechanisms to examine the error (appAuthnError headers)
-~~test attempt to create a new user with a unique app_metadata attribute - should return a 409~~
-- need to set-up auth0 actions correctly for this, out of scope on this project
+
+
+* ~~test attempt to create a new user with a unique app_metadata attribute - should return a 409~~
+* need to set-up auth0 actions correctly for this, out of scope on this project
 ~~change the env file loading, json metadata loading, to async versions~~
 * DONT BOTHER LOL - env file needs to load before anything else can happen. json metadata can probably be done, but just adds extra work for very little gain
 
