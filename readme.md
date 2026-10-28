@@ -7,6 +7,17 @@ Main branch auth0-oidc is set up to work as an auth0 client
 
 ## How to use
 
+make your env file with
+```
+python3 envFileMaker.py
+```
+
+need to add cert files as well (.key, .pem)
+need to create user_cred.env (manually)
+```
+testuser_username='preferredtesting@email.com'
+testuser_password='longcodemainlyfortesting'
+```
 
 launch with
 
@@ -32,7 +43,6 @@ config files - todo
 * push form that allows user creation
 * user creation based on roles
 * template functions for client to edit user metadata, app metadata
-* script that creates new, or updates existing .env files (makes it easier to deploy anywhere)
 * script to configure gunicorn.conf.py
 * authorization check that checks permittedAttributes
 
@@ -64,6 +74,8 @@ auth0 metadata
 * roles need to be added to user after creation is complete
 
 ## Completed
+2026-10-28
+* script that creates new, or updates existing .env files (makes it easier to deploy anywhere)
 2026-09-01
 * check for valid user emails
 * user details page looks better formatted now, and uses async httpx
