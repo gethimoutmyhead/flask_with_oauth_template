@@ -20,6 +20,15 @@ env_defaults = {
         'oidc_clientID': '',
         'oidc_clientSecret': '',
         'oidc_authserver': ''},
+    'user_cred.env': {
+        'testuser_username':'',
+        'testuser_password':'',
+    },
+    'pyapp_auth0-oidc.env':{
+        "callbackServer_port": 4125,
+        "oidc_clientID":'',
+        "oidc_authserver":'',
+    }
 }
 
 NUMBER_PATTERN = re.compile(r"-?\d+(\.\d+)?")

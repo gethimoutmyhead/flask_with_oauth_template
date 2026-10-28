@@ -6,19 +6,25 @@ Main branch auth0-oidc is set up to work as an auth0 client
 
 
 ## How to use
-
+### 1st time
 make your env file with
 ```
 python3 envFileMaker.py
 ```
 
-need to add cert files as well (.key, .pem)
-need to create user_cred.env (manually)
+set up pip
+```
+pipenv shell
+pipenv install
+```
+
+need to add cert files as well (neb.pem, neb-key.pem)
+
 ```
 testuser_username='preferredtesting@email.com'
 testuser_password='longcodemainlyfortesting'
 ```
-
+### running your server
 launch with
 
 ```
